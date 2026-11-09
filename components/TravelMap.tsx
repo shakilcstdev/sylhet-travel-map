@@ -114,7 +114,6 @@ export default function TravelMap() {
     }
   };
 
-  // 🌟 শেয়ার বাটনের ফাংশন (মোবাইল ও পিসি উভয় জায়গায় কাজ করবে) 🌟
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -127,13 +126,11 @@ export default function TravelMap() {
         console.log('Error sharing:', error);
       }
     } else {
-      // যদি ডিভাইসে নেটিভ শেয়ার সাপোর্ট না থাকে তবে লিংক কপি হবে
       navigator.clipboard.writeText(window.location.href);
       alert('লিংকটি কপি করা হয়েছে! এখন বন্ধুদের সাথে শেয়ার করুন।');
     }
   };
 
-  // 🌟 ডাউনলোড ফাংশন (সরাসরি ডাউনলোড হবে) 🌟
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
@@ -162,7 +159,6 @@ export default function TravelMap() {
         pdf.addImage(dataUrl, "PNG", (pageWidth - width) / 2, 5, width, height);
         pdf.save("আমার-সিলেট-ম্যাপ.pdf");
       } else {
-        // 🌟 মোবাইল ও পিসি উভয় জায়গায় সরাসরি ডাউনলোড শুরু হবে 🌟
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = `আমার-সিলেট-ম্যাপ.${format}`;
@@ -359,259 +355,269 @@ export default function TravelMap() {
             </div>
           </div>
 
-          <div
-            ref={mapRef}
-            className="relative bg-[#F8F6F0] w-full min-h-[700px] rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-8 flex flex-col items-center"
-          >
-            <div className="flex justify-between items-start z-10 w-full mb-4">
-              <div>
-                <p className="text-xs font-bold text-gray-500 mb-1">
-                  বাংলাদেশ ভ্রমণ ম্যাপ
-                </p>
-                <h1 className="text-4xl md:text-5xl font-black text-[#1A1A1A]">
-                  আমার সিলেট
-                </h1>
-              </div>
-              <div className="flex items-end gap-1">
-                <span
-                  className="text-6xl md:text-7xl font-black leading-none"
-                  style={{ color: activeTheme.color }}
-                >
-                  {visitedSpots.length}
-                </span>
-                <span className="text-gray-400 font-bold text-2xl mb-1">
-                  /{spotsData.length}
-                </span>
-              </div>
-            </div>
+          {/* 🌟 ম্যাপ ক্যানভাস 🌟 */}
+          <div className="flex justify-center w-full">
+            <div
+              ref={mapRef}
+              className="relative bg-[#F8F6F0] w-full max-w-[750px] rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-6 md:p-8 flex flex-col min-h-[750px]"
+            >
+              <div className="flex justify-between items-start z-10 w-full mb-4 gap-2">
+                {/* 🌟 ছবি এবং লেখার কন্টেইনার (পাশাপাশি) 🌟 */}
+                <div className="flex items-center gap-3 md:gap-4">
+                  
+                  {/* ছবি */}
+                  {userImage && (
+                    <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-md -rotate-2 border-2 border-white w-fit z-20 shrink-0">
+                      <img
+                        src={userImage}
+                        alt="আপনার ছবি"
+                        className="w-14 h-14 md:w-20 md:h-20 object-cover rounded-md"
+                      />
+                      {userName && (
+                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[56px] md:max-w-[80px]">
+                          {userName}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-            <div className="flex-1 w-full relative flex items-center justify-center mt-4">
-              {mapError ? (
-                <div className="text-red-500 font-bold text-center">
-                  ম্যাপ ফাইল লোড করা যায়নি।
-                  <br />
-                  <span className="text-sm font-normal">
-                    আপনার ইন্টারনেট কানেকশন চেক করুন।
+                  {/* লেখা */}
+                  <div className="flex flex-col">
+                    <h1 className="text-2xl md:text-5xl font-black text-[#1A1A1A] whitespace-nowrap">
+                      আমার সিলেট
+                    </h1>
+                    <p className="text-xs md:text-lg font-medium text-gray-500 mt-1">
+                      ভ্রমণ ম্যাপ
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* কাউন্টার */}
+                <div className="flex items-end gap-1 shrink-0">
+                  <span
+                    className="text-4xl md:text-7xl font-black leading-none"
+                    style={{ color: activeTheme.color }}
+                  >
+                    {visitedSpots.length}
+                  </span>
+                  <span className="text-gray-400 font-bold text-lg md:text-2xl mb-1">
+                    /{spotsData.length}
                   </span>
                 </div>
-              ) : !mapData ? (
-                <div className="text-gray-500 font-bold animate-pulse">
-                  ম্যাপ ডেটা লোড হচ্ছে...
-                </div>
-              ) : (
-                <ComposableMap
-                  projection="geoMercator"
-                  projectionConfig={{ scale: 26000, center: [91.6, 24.6] }}
-                  width={800}
-                  height={800}
-                  className="w-full h-full max-h-[600px]"
-                >
-                  <Geographies geography={mapData}>
-                    {({ geographies }) =>
-                      geographies
-                        .filter((geo) => {
-                          const name = (
-                            geo.properties?.NAME_2 ||
-                            geo.properties?.name ||
-                            geo.properties?.ADM2_EN ||
-                            ""
-                          ).toLowerCase();
-                          return (
-                            name === "sylhet" ||
-                            name === "sunamganj" ||
-                            name === "moulvibazar" ||
-                            name === "maulvibazar" ||
-                            name === "habiganj"
-                          );
-                        })
-                        .map((geo) => {
-                          const geoName = (
-                            geo.properties?.NAME_2 ||
-                            geo.properties?.name ||
-                            geo.properties?.ADM2_EN ||
-                            ""
-                          ).toLowerCase();
+              </div>
 
-                          let districtBn = "";
-                          if (geoName === "sylhet") districtBn = "সিলেট";
-                          else if (geoName === "sunamganj") districtBn = "সুনামগঞ্জ";
-                          else if (geoName === "moulvibazar" || geoName === "maulvibazar")
-                            districtBn = "মৌলভীবাজার";
-                          else if (geoName === "habiganj") districtBn = "হবিগঞ্জ";
+              <div className="flex-1 w-full relative flex items-center justify-center my-4">
+                {mapError ? (
+                  <div className="text-red-500 font-bold text-center">
+                    ম্যাপ ফাইল লোড করা যায়নি।
+                    <br />
+                    <span className="text-sm font-normal">
+                      আপনার ইন্টারনেট কানেকশন চেক করুন।
+                    </span>
+                  </div>
+                ) : !mapData ? (
+                  <div className="text-gray-500 font-bold animate-pulse">
+                    ম্যাপ ডেটা লোড হচ্ছে...
+                  </div>
+                ) : (
+                  <ComposableMap
+                    projection="geoMercator"
+                    projectionConfig={{ scale: 26000, center: [91.6, 24.6] }}
+                    width={800}
+                    height={800}
+                    className="w-full h-full max-h-[450px] md:max-h-[500px]"
+                  >
+                    <Geographies geography={mapData}>
+                      {({ geographies }) =>
+                        geographies
+                          .filter((geo) => {
+                            const name = (
+                              geo.properties?.NAME_2 ||
+                              geo.properties?.name ||
+                              geo.properties?.ADM2_EN ||
+                              ""
+                            ).toLowerCase();
+                            return (
+                              name === "sylhet" ||
+                              name === "sunamganj" ||
+                              name === "moulvibazar" ||
+                              name === "maulvibazar" ||
+                              name === "habiganj"
+                            );
+                          })
+                          .map((geo) => {
+                            const geoName = (
+                              geo.properties?.NAME_2 ||
+                              geo.properties?.name ||
+                              geo.properties?.ADM2_EN ||
+                              ""
+                            ).toLowerCase();
 
-                          const [x, y] = geoCentroid(geo);
+                            let districtBn = "";
+                            if (geoName === "sylhet") districtBn = "সিলেট";
+                            else if (geoName === "sunamganj") districtBn = "সুনামগঞ্জ";
+                            else if (geoName === "moulvibazar" || geoName === "maulvibazar")
+                              districtBn = "মৌলভীবাজার";
+                            else if (geoName === "habiganj") districtBn = "হবিগঞ্জ";
 
-                          return (
-                            <React.Fragment key={geo.rsmKey}>
-                              <Geography
-                                geography={geo}
-                                fill="#E5E0D5"
-                                stroke="#FFFFFF"
-                                strokeWidth={2}
-                                style={{
-                                  default: { outline: "none", transition: "fill 300ms" },
-                                  hover: { fill: "#d6d0c4", outline: "none" },
-                                  pressed: { outline: "none" },
-                                } as any}
-                              />
+                            const [x, y] = geoCentroid(geo);
 
-                              <Marker coordinates={[x, y]}>
+                            return (
+                              <React.Fragment key={geo.rsmKey}>
+                                <Geography
+                                  geography={geo}
+                                  fill="#E5E0D5"
+                                  stroke="#FFFFFF"
+                                  strokeWidth={2}
+                                  style={{
+                                    default: { outline: "none", transition: "fill 300ms" },
+                                    hover: { fill: "#d6d0c4", outline: "none" },
+                                    pressed: { outline: "none" },
+                                  } as any}
+                                />
+
+                                <Marker coordinates={[x, y]}>
+                                  <text
+                                    textAnchor="middle"
+                                    y={0}
+                                    style={{
+                                      fontFamily: "inherit",
+                                      fill: "#173D2B",
+                                      fontSize: "16px",
+                                      fontWeight: "900",
+                                      paintOrder: "stroke",
+                                    }}
+                                    stroke="#FFFFFF"
+                                    strokeWidth={3}
+                                    className="pointer-events-none drop-shadow-sm"
+                                  >
+                                    {districtBn}
+                                  </text>
+                                </Marker>
+                              </React.Fragment>
+                            );
+                          })
+                      }
+                    </Geographies>
+
+                    {spotsData.map((spot) => {
+                      const isSelected = visitedSpots.includes(spot.id);
+
+                      return (
+                        <Marker
+                          key={spot.id}
+                          coordinates={spot.coordinates as [number, number]}
+                        >
+                          <g
+                            className="cursor-pointer group"
+                            onClick={() => toggleVisited(spot.id)}
+                          >
+                            <circle
+                              r={isSelected ? 4.5 : 2.5}
+                              fill={isSelected ? activeTheme.color : "#D32F2F"}
+                              stroke="#FFFFFF"
+                              strokeWidth={1.5}
+                              className="transition-all duration-200 group-hover:r-5"
+                            />
+                            
+                            {isSelected && (
+                              <g transform="translate(0, -12)">
+                                <rect
+                                  x={-(spot.name.length * 3.5 + 6)}
+                                  y={-8}
+                                  width={spot.name.length * 7 + 12}
+                                  height={14}
+                                  rx={7}
+                                  fill={activeTheme.color}
+                                  className="drop-shadow-md opacity-95"
+                                />
                                 <text
                                   textAnchor="middle"
-                                  y={0}
-                                  style={{
-                                    fontFamily: "inherit",
-                                    fill: "#173D2B",
-                                    fontSize: "18px",
-                                    fontWeight: "900",
-                                    paintOrder: "stroke",
-                                  }}
-                                  stroke="#FFFFFF"
-                                  strokeWidth={3}
-                                  className="pointer-events-none drop-shadow-sm"
+                                  y={2}
+                                  fontSize={7.5}
+                                  fontWeight="bold"
+                                  fill="#FFFFFF"
+                                  className="pointer-events-none"
                                 >
-                                  {districtBn}
+                                  {spot.name}
                                 </text>
-                              </Marker>
-                            </React.Fragment>
-                          );
-                        })
-                    }
-                  </Geographies>
-
-                  {spotsData.map((spot) => {
-                    const isSelected = visitedSpots.includes(spot.id);
-
-                    return (
-                      <Marker
-                        key={spot.id}
-                        coordinates={spot.coordinates as [number, number]}
-                      >
-                        <g
-                          className="cursor-pointer group"
-                          onClick={() => toggleVisited(spot.id)}
-                        >
-                          <circle
-                            r={isSelected ? 4.5 : 2.5}
-                            fill={isSelected ? activeTheme.color : "#D32F2F"}
-                            stroke="#FFFFFF"
-                            strokeWidth={1.5}
-                            className="transition-all duration-200 group-hover:r-5"
-                          />
-                          
-                          {isSelected && (
-                            <g transform="translate(0, -12)">
-                              <rect
-                                x={-(spot.name.length * 3.5 + 6)}
-                                y={-8}
-                                width={spot.name.length * 7 + 12}
-                                height={14}
-                                rx={7}
-                                fill={activeTheme.color}
-                                className="drop-shadow-md opacity-95"
-                              />
-                              <text
-                                textAnchor="middle"
-                                y={2}
-                                fontSize={7.5}
-                                fontWeight="bold"
-                                fill="#FFFFFF"
-                                className="pointer-events-none"
-                              >
-                                {spot.name}
-                              </text>
-                            </g>
-                          )}
-                        </g>
-                      </Marker>
-                    );
-                  })}
-                </ComposableMap>
-              )}
-            </div>
-
-            <div className="w-full z-10 pt-6 mt-auto">
-              <div
-                className="flex justify-between items-center mb-2 text-sm font-bold"
-                style={{ color: activeTheme.color }}
-              >
-                <span>{progress}% সিলেট ঘোরা হয়েছে</span>
-                <span className="text-gray-500 font-medium text-xs">
-                  মোট ৪ টি জেলা • {spotsData.length} টি স্পট
-                </span>
-              </div>
-
-              <div className="w-full bg-[#E5E0D5] rounded-full h-2.5 mb-5">
-                <div
-                  className="h-2.5 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${progress}%`,
-                    backgroundColor: activeTheme.color,
-                  }}
-                />
-              </div>
-
-              <div className="flex justify-between items-end border-t border-gray-200 pt-5">
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-medium text-gray-500">মানচিত্র তৈরি করেছেন:</span>
-                    
-                    <img 
-                      src="/profile.png" 
-                      alt="Creator" 
-                      className="w-7 h-7 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
-                    />
-                    
-                    <span className="font-bold text-gray-800 text-sm uppercase">MD SHAKIL AHAMED</span>
-                  </div>
-                  
-                  <p className="text-xl font-black text-[#1A1A1A]">
-                    ঘুরে দেখুন{" "}
-                    <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
-                  </p>
-                </div>
-                {/* 🌟 শেয়ার বাটন এখন কাজ করবে 🌟 */}
-                <button
-                  onClick={handleShare}
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:opacity-80 transition cursor-pointer"
-                  style={{ backgroundColor: activeTheme.color }}
-                >
-                  <Share2 size={20} className="text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* 🌟 মোবাইলে ছবি ছোট হবে ও মাঝখানে থাকবে, পিসিতে বড় হবে 🌟 */}
-            {userImage && (
-              <div className="absolute top-[260px] md:top-28 left-2 md:left-8 bg-white p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-2xl -rotate-3 border-2 md:border-4 border-white z-30">
-                <img
-                  src={userImage}
-                  alt="আপনার ছবি"
-                  className="w-14 h-14 md:w-24 md:h-24 object-cover rounded-md md:rounded-lg"
-                />
-                {userName && (
-                  <p className="text-center text-[8px] md:text-xs font-bold mt-1 md:mt-2 text-gray-800 bg-gray-100 py-0.5 md:py-1 rounded uppercase truncate max-w-[56px] md:max-w-full">
-                    {userName}
-                  </p>
+                              </g>
+                            )}
+                          </g>
+                        </Marker>
+                      );
+                    })}
+                  </ComposableMap>
                 )}
               </div>
-            )}
+
+              <div className="w-full z-10 pt-6 mt-auto border-t border-gray-200">
+                <div
+                  className="flex justify-between items-center mb-2 text-xs md:text-sm font-bold"
+                  style={{ color: activeTheme.color }}
+                >
+                  <span>{progress}% সিলেট ঘোরা হয়েছে</span>
+                  <span className="text-gray-500 font-medium text-[10px] md:text-xs">
+                    মোট ৪ টি জেলা • {spotsData.length} টি স্পট
+                  </span>
+                </div>
+
+                <div className="w-full bg-[#E5E0D5] rounded-full h-2 mb-4">
+                  <div
+                    className="h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${progress}%`,
+                      backgroundColor: activeTheme.color,
+                    }}
+                  />
+                </div>
+
+                <div className="flex justify-between items-end mt-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[10px] md:text-xs font-medium text-gray-500">মানচিত্র তৈরি করেছেন:</span>
+                      
+                      <img 
+                        src="/profile.png" 
+                        alt="Creator" 
+                        className="w-5 h-5 md:w-7 md:h-7 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
+                      />
+                      
+                      <span className="font-bold text-gray-800 text-xs md:text-sm uppercase">MD SHAKIL AHAMED</span>
+                    </div>
+                    
+                    <p className="text-lg md:text-xl font-black text-[#1A1A1A]">
+                      ঘুরে দেখুন{" "}
+                      <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleShare}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-lg hover:opacity-80 transition cursor-pointer"
+                    style={{ backgroundColor: activeTheme.color }}
+                  >
+                    <Share2 size={20} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center gap-3 mt-2">
+          <div className="flex flex-col items-center gap-2 mt-2 w-full max-w-[400px] mx-auto px-4">
             <button
               onClick={() => downloadMap("png")}
-              className="w-full md:w-auto px-16 flex items-center justify-center gap-2 py-4 rounded-xl text-md font-bold transition shadow-md text-white hover:opacity-90"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm md:text-base font-bold transition shadow-md text-white hover:opacity-90"
               style={{ backgroundColor: activeTheme.color }}
             >
-              <Download size={20} />
+              <Download size={18} />
               আপনার ম্যাপ ডাউনলোড করুন
             </button>
 
-            <div className="flex gap-3">
-              <button onClick={() => downloadMap("png")} className="text-sm font-medium text-gray-500 hover:text-black">PNG</button> • 
-              <button onClick={() => downloadMap("jpg")} className="text-sm font-medium text-gray-500 hover:text-black">JPG</button> • 
-              <button onClick={() => downloadMap("pdf")} className="text-sm font-medium text-gray-500 hover:text-black">PDF</button>
+            <div className="flex justify-center gap-4 text-xs md:text-sm font-medium text-gray-500">
+              <button onClick={() => downloadMap("png")} className="hover:text-black">PNG</button> • 
+              <button onClick={() => downloadMap("jpg")} className="hover:text-black">JPG</button> • 
+              <button onClick={() => downloadMap("pdf")} className="hover:text-black">PDF</button>
             </div>
           </div>
         </main>
