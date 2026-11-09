@@ -139,9 +139,10 @@ export default function TravelMap() {
         await document.fonts.ready;
       }
 
+      // 🌟 pixelRatio 3 দেওয়া হয়েছে যাতে ছবি একদম এইচডি এবং বড় সাইজে ডাউনলোড হয় 🌟
       const dataUrl = await toPng(mapRef.current, {
         cacheBust: true,
-        pixelRatio: 2,
+        pixelRatio: 3, 
         backgroundColor: "#F8F6F0",
         style: { transform: "scale(1)" },
       });
@@ -355,26 +356,26 @@ export default function TravelMap() {
             </div>
           </div>
 
-          {/* 🌟 ম্যাপ ক্যানভাস 🌟 */}
+          {/* 🌟 ম্যাপ ক্যানভাস (২ নাম্বার ছবির মতো পোস্টার ডিজাইন) 🌟 */}
           <div className="flex justify-center w-full">
             <div
               ref={mapRef}
-              className="relative bg-[#F8F6F0] w-full max-w-[750px] rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-6 md:p-8 flex flex-col min-h-[750px]"
+              className="relative bg-[#F8F6F0] w-full max-w-[700px] rounded-2xl shadow-2xl overflow-hidden border-[10px] border-white flex flex-col aspect-[4/5]"
             >
-              <div className="flex justify-between items-start z-10 w-full mb-4 gap-2">
-                {/* 🌟 ছবি এবং লেখার কন্টেইনার (পাশাপাশি) 🌟 */}
+              {/* টপ সেকশন */}
+              <div className="flex justify-between items-start z-10 w-full p-6 md:p-8 pb-0 gap-2">
                 <div className="flex items-center gap-3 md:gap-4">
                   
-                  {/* ছবি */}
+                  {/* সার্টিফিকেট স্টাইল ছবি */}
                   {userImage && (
-                    <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-md -rotate-2 border-2 border-white w-fit z-20 shrink-0">
+                    <div className="bg-white p-1.5 md:p-2 rounded-lg shadow-sm -rotate-2 border border-gray-200 w-fit z-20 shrink-0">
                       <img
                         src={userImage}
                         alt="আপনার ছবি"
-                        className="w-14 h-14 md:w-20 md:h-20 object-cover rounded-md"
+                        className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
                       />
                       {userName && (
-                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[56px] md:max-w-[80px]">
+                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[64px] md:max-w-[80px]">
                           {userName}
                         </p>
                       )}
@@ -383,38 +384,34 @@ export default function TravelMap() {
 
                   {/* লেখা */}
                   <div className="flex flex-col">
-                    <h1 className="text-2xl md:text-5xl font-black text-[#1A1A1A] whitespace-nowrap">
+                    <p className="text-[10px] md:text-xs font-bold text-gray-500 mb-1">
+                      বাংলাদেশ ভ্রমণ ম্যাপ
+                    </p>
+                    <h1 className="text-3xl md:text-5xl font-black text-[#1A1A1A] whitespace-nowrap">
                       আমার সিলেট
                     </h1>
-                    <p className="text-xs md:text-lg font-medium text-gray-500 mt-1">
-                      ভ্রমণ ম্যাপ
-                    </p>
                   </div>
-
                 </div>
 
                 {/* কাউন্টার */}
                 <div className="flex items-end gap-1 shrink-0">
                   <span
-                    className="text-4xl md:text-7xl font-black leading-none"
+                    className="text-5xl md:text-7xl font-black leading-none"
                     style={{ color: activeTheme.color }}
                   >
                     {visitedSpots.length}
                   </span>
-                  <span className="text-gray-400 font-bold text-lg md:text-2xl mb-1">
+                  <span className="text-gray-400 font-bold text-xl md:text-2xl mb-1">
                     /{spotsData.length}
                   </span>
                 </div>
               </div>
 
-              <div className="flex-1 w-full relative flex items-center justify-center my-4">
+              {/* ম্যাপ এরিয়া */}
+              <div className="flex-1 w-full relative flex items-center justify-center p-4">
                 {mapError ? (
                   <div className="text-red-500 font-bold text-center">
                     ম্যাপ ফাইল লোড করা যায়নি।
-                    <br />
-                    <span className="text-sm font-normal">
-                      আপনার ইন্টারনেট কানেকশন চেক করুন।
-                    </span>
                   </div>
                 ) : !mapData ? (
                   <div className="text-gray-500 font-bold animate-pulse">
@@ -426,7 +423,7 @@ export default function TravelMap() {
                     projectionConfig={{ scale: 26000, center: [91.6, 24.6] }}
                     width={800}
                     height={800}
-                    className="w-full h-full max-h-[450px] md:max-h-[500px]"
+                    className="w-full h-full max-h-[400px] md:max-h-[500px]"
                   >
                     <Geographies geography={mapData}>
                       {({ geographies }) =>
@@ -552,7 +549,8 @@ export default function TravelMap() {
                 )}
               </div>
 
-              <div className="w-full z-10 pt-6 mt-auto border-t border-gray-200">
+              {/* বটম সেকশন */}
+              <div className="w-full z-10 bg-[#F8F6F0] p-6 md:p-8 pt-4 border-t border-gray-200 mt-auto">
                 <div
                   className="flex justify-between items-center mb-2 text-xs md:text-sm font-bold"
                   style={{ color: activeTheme.color }}
@@ -575,26 +573,26 @@ export default function TravelMap() {
 
                 <div className="flex justify-between items-end mt-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] md:text-xs font-medium text-gray-500">মানচিত্র তৈরি করেছেন:</span>
                       
                       <img 
                         src="/profile.png" 
                         alt="Creator" 
-                        className="w-5 h-5 md:w-7 md:h-7 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
+                        className="w-5 h-5 md:w-6 md:h-6 rounded-full object-cover border border-gray-300" 
                       />
                       
-                      <span className="font-bold text-gray-800 text-xs md:text-sm uppercase">MD SHAKIL AHAMED</span>
+                      <span className="font-bold text-gray-800 text-[10px] md:text-xs uppercase">MD SHAKIL AHAMED</span>
                     </div>
                     
-                    <p className="text-lg md:text-xl font-black text-[#1A1A1A]">
+                    <p className="text-lg md:text-2xl font-black text-[#1A1A1A]">
                       ঘুরে দেখুন{" "}
                       <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
                     </p>
                   </div>
                   <button
                     onClick={handleShare}
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-lg hover:opacity-80 transition cursor-pointer"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-md hover:opacity-80 transition cursor-pointer"
                     style={{ backgroundColor: activeTheme.color }}
                   >
                     <Share2 size={20} className="text-white" />
@@ -604,6 +602,7 @@ export default function TravelMap() {
             </div>
           </div>
 
+          {/* ডাউনলোড বাটন */}
           <div className="flex flex-col items-center gap-2 mt-2 w-full max-w-[400px] mx-auto px-4">
             <button
               onClick={() => downloadMap("png")}
