@@ -10,7 +10,7 @@ import {
   Globe,
   User,
 } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image"; // 🌟 নতুন ও নির্ভরযোগ্য লাইব্রেরি
 import jsPDF from "jspdf";
 import {
   ComposableMap,
@@ -20,7 +20,6 @@ import {
 } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
-// 🌟 CORS মুক্ত লিংক 🌟
 const geoUrls = [
   "/bangladesh.geojson",
   "https://raw.githubusercontent.com/fahim-muntasir-niloy/Bangladesh-geojson_project/main/Geo%20Json%20Maps/BD_Districts.json"
@@ -88,6 +87,16 @@ export default function TravelMap() {
     );
   }, [searchQuery]);
 
+  const selectedDistricts = useMemo(() => {
+    const districts = new Set<string>();
+    spotsData.forEach((spot) => {
+      if (visitedSpots.includes(spot.id)) {
+        districts.add(spot.district);
+      }
+    });
+    return Array.from(districts);
+  }, [visitedSpots]);
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -131,32 +140,29 @@ export default function TravelMap() {
     }
   };
 
-  // 🌟 ডাউনলোড ফাংশন (Vercel এর জন্য ফিক্স করা হয়েছে) 🌟
+  // 🌟 আপডেটেড ডাউনলোড ফাংশন (html-to-image ব্যবহার করে)
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
     try {
-      // ১. ফন্ট লোড হওয়া পর্যন্ত অপেক্ষা করা
+      // ফন্ট লোড হওয়া পর্যন্ত অপেক্ষা করা
       if (document.fonts) {
         await document.fonts.ready;
       }
 
-      const canvas = await html2canvas(mapRef.current, {
-        useCORS: true,
-        allowTaint: true, // ২. CORS ব্লক এড়ানোর জন্য
-        scale: 2,
+      // html-to-image এর toPng ব্যবহার করে ডেটা URL নেওয়া
+      const dataUrl = await toPng(mapRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
         backgroundColor: "#F8F6F0",
-        logging: false,
+        style: {
+          transform: "scale(1)", // স্কেল ফিক্স
+        },
       });
-
-      const imageData = canvas.toDataURL(
-        format === "jpg" ? "image/jpeg" : "image/png",
-        0.95
-      );
 
       if (format === "pdf") {
         const pdf = new jsPDF("p", "mm", "a4");
-        const imgProps = pdf.getImageProperties(imageData);
+        const imgProps = pdf.getImageProperties(dataUrl);
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
@@ -165,7 +171,7 @@ export default function TravelMap() {
         const height = imgProps.height * ratio;
 
         pdf.addImage(
-          imageData,
+          dataUrl,
           "PNG",
           (pageWidth - width) / 2,
           5,
@@ -176,7 +182,7 @@ export default function TravelMap() {
         pdf.save("আমার-সিলেট-ম্যাপ.pdf");
       } else {
         const link = document.createElement("a");
-        link.href = imageData;
+        link.href = dataUrl;
         link.download = `আমার-সিলেট-ম্যাপ.${format}`;
         link.click();
       }
@@ -453,40 +459,44 @@ export default function TravelMap() {
                             districtBn = "মৌলভীবাজার";
                           else if (geoName === "habiganj") districtBn = "হবিগঞ্জ";
 
+                          const isDistrictSelected = selectedDistricts.includes(districtBn);
                           const [x, y] = geoCentroid(geo);
 
                           return (
                             <React.Fragment key={geo.rsmKey}>
                               <Geography
                                 geography={geo}
-                                fill="#E5E0D5"
+                                fill={isDistrictSelected ? activeTheme.color : "#E5E0D5"}
                                 stroke="#FFFFFF"
                                 strokeWidth={2}
                                 style={{
                                   default: { outline: "none", transition: "fill 300ms" },
-                                  hover: { fill: "#d6d0c4", outline: "none" },
+                                  hover: { fill: isDistrictSelected ? activeTheme.color : "#d6d0c4", outline: "none" },
                                   pressed: { outline: "none" },
                                 } as any}
                               />
 
-                              <Marker coordinates={[x, y]}>
-                                <text
-                                  textAnchor="middle"
-                                  y={0}
-                                  style={{
-                                    fontFamily: "inherit",
-                                    fill: "#173D2B",
-                                    fontSize: "18px",
-                                    fontWeight: "900",
-                                    paintOrder: "stroke",
-                                  }}
-                                  stroke="#FFFFFF"
-                                  strokeWidth={3}
-                                  className="pointer-events-none drop-shadow-sm"
-                                >
-                                  {districtBn}
-                                </text>
-                              </Marker>
+                              {isDistrictSelected && (
+                                <Marker coordinates={[x, y]}>
+                                  <circle r={5} fill="#D32F2F" stroke="#FFFFFF" strokeWidth={2} className="drop-shadow-md" />
+                                  <text
+                                    textAnchor="middle"
+                                    y={-12}
+                                    style={{
+                                      fontFamily: "inherit",
+                                      fill: "#FFFFFF",
+                                      fontSize: "14px",
+                                      fontWeight: "bold",
+                                    }}
+                                    stroke="#1A1A1A"
+                                    strokeWidth={0.8}
+                                    paintOrder="stroke"
+                                    className="pointer-events-none drop-shadow-md"
+                                  >
+                                    {districtBn}
+                                  </text>
+                                </Marker>
+                              )}
                             </React.Fragment>
                           );
                         })
@@ -508,34 +518,25 @@ export default function TravelMap() {
                           <circle
                             r={isSelected ? 3.5 : 2.5}
                             fill={isSelected ? "#FFFFFF" : "#D32F2F"}
-                            stroke={isSelected ? activeTheme.color : "#FFFFFF"}
+                            stroke={isSelected ? "#1A1A1A" : "#FFFFFF"}
                             strokeWidth={1.5}
                             className="transition-all duration-200 group-hover:r-4"
                           />
-
-                          {isSelected && (
-                            <g transform="translate(0, -12)">
-                              <rect
-                                x={-(spot.name.length * 3.5 + 6)}
-                                y={-8}
-                                width={spot.name.length * 7 + 12}
-                                height={14}
-                                rx={7}
-                                fill={activeTheme.color}
-                                className="drop-shadow-md opacity-95"
-                              />
-                              <text
-                                textAnchor="middle"
-                                y={2}
-                                fontSize={7.5}
-                                fontWeight="bold"
-                                fill="#FFFFFF"
-                                className="pointer-events-none"
-                              >
-                                {spot.name}
-                              </text>
-                            </g>
-                          )}
+                          <text
+                            textAnchor="middle"
+                            y={-8}
+                            fontSize={7.5}
+                            fontWeight="bold"
+                            fill="#1A1A1A"
+                            stroke="#FFFFFF"
+                            strokeWidth={2.5}
+                            paintOrder="stroke"
+                            className={`pointer-events-none transition-opacity duration-200 drop-shadow-sm ${
+                              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            }`}
+                          >
+                            {spot.name}
+                          </text>
                         </g>
                       </Marker>
                     );
