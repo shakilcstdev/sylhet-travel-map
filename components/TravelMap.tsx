@@ -20,9 +20,9 @@ import {
 } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
-// 🌟 সমাধান ১: CORS মুক্ত লিংক (গিটহাবের রিডাইরেক্ট লিংক বাদ দেওয়া হয়েছে) 🌟
+// 🌟 CORS মুক্ত লিংক 🌟
 const geoUrls = [
-  "/bangladesh.geojson", // লোকাল ফাইল (সবচেয়ে নিরাপদ)
+  "/bangladesh.geojson",
   "https://raw.githubusercontent.com/fahim-muntasir-niloy/Bangladesh-geojson_project/main/Geo%20Json%20Maps/BD_Districts.json"
 ];
 
@@ -131,12 +131,19 @@ export default function TravelMap() {
     }
   };
 
+  // 🌟 ডাউনলোড ফাংশন (Vercel এর জন্য ফিক্স করা হয়েছে) 🌟
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
     try {
+      // ১. ফন্ট লোড হওয়া পর্যন্ত অপেক্ষা করা
+      if (document.fonts) {
+        await document.fonts.ready;
+      }
+
       const canvas = await html2canvas(mapRef.current, {
         useCORS: true,
+        allowTaint: true, // ২. CORS ব্লক এড়ানোর জন্য
         scale: 2,
         backgroundColor: "#F8F6F0",
         logging: false,
@@ -157,10 +164,9 @@ export default function TravelMap() {
         const width = imgProps.width * ratio;
         const height = imgProps.height * ratio;
 
-        // 🌟 সমাধান ২: TypeScript এরর ফিক্স (এখানে "PNG" সরাসরি দেওয়া হলো) 🌟
         pdf.addImage(
           imageData,
-          "PNG", 
+          "PNG",
           (pageWidth - width) / 2,
           5,
           width,
@@ -175,7 +181,7 @@ export default function TravelMap() {
         link.click();
       }
     } catch (error) {
-      console.error("Download error:", error);
+      console.error("Download failed:", error);
       alert("ম্যাপ ডাউনলোড করা যাচ্ছে না। আবার চেষ্টা করুন।");
     }
   };
@@ -417,7 +423,6 @@ export default function TravelMap() {
                   <Geographies geography={mapData}>
                     {({ geographies }) =>
                       geographies
-                        // 🌟 সমাধান ৩: TypeScript Null Check (?.) যোগ করা হয়েছে 🌟
                         .filter((geo) => {
                           const name = (
                             geo.properties?.NAME_2 ||
@@ -452,7 +457,6 @@ export default function TravelMap() {
 
                           return (
                             <React.Fragment key={geo.rsmKey}>
-                              {/* 🌟 সমাধান ৪: TypeScript Style Error (as any) 🌟 */}
                               <Geography
                                 geography={geo}
                                 fill="#E5E0D5"
