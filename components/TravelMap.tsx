@@ -2,22 +2,10 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-import {
-  Upload,
-  Download,
-  Search,
-  Share2,
-  Globe,
-  User,
-} from "lucide-react";
-import { toPng } from "html-to-image"; // 🌟 নতুন ও নির্ভরযোগ্য লাইব্রেরি
+import { Upload, Download, Search, Share2, Globe, User } from "lucide-react";
+import { toPng } from "html-to-image"; 
 import jsPDF from "jspdf";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-} from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
 const geoUrls = [
@@ -87,16 +75,6 @@ export default function TravelMap() {
     );
   }, [searchQuery]);
 
-  const selectedDistricts = useMemo(() => {
-    const districts = new Set<string>();
-    spotsData.forEach((spot) => {
-      if (visitedSpots.includes(spot.id)) {
-        districts.add(spot.district);
-      }
-    });
-    return Array.from(districts);
-  }, [visitedSpots]);
-
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -140,24 +118,19 @@ export default function TravelMap() {
     }
   };
 
-  // 🌟 আপডেটেড ডাউনলোড ফাংশন (html-to-image ব্যবহার করে)
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
     try {
-      // ফন্ট লোড হওয়া পর্যন্ত অপেক্ষা করা
       if (document.fonts) {
         await document.fonts.ready;
       }
 
-      // html-to-image এর toPng ব্যবহার করে ডেটা URL নেওয়া
       const dataUrl = await toPng(mapRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#F8F6F0",
-        style: {
-          transform: "scale(1)", // স্কেল ফিক্স
-        },
+        style: { transform: "scale(1)" },
       });
 
       if (format === "pdf") {
@@ -220,8 +193,7 @@ export default function TravelMap() {
             className="flex items-center gap-1 px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-full hover:bg-gray-50"
             onClick={() => alert("সাইন ইন সুবিধা পরবর্তীতে যুক্ত করা হবে।")}
           >
-            <User size={16} />
-            সাইন ইন
+            <User size={16} /> সাইন ইন
           </button>
         </div>
       </header>
@@ -419,7 +391,7 @@ export default function TravelMap() {
                 <ComposableMap
                   projection="geoMercator"
                   projectionConfig={{
-                    scale: 25000,
+                    scale: 26000,
                     center: [91.6, 24.6],
                   }}
                   width={800}
@@ -459,50 +431,49 @@ export default function TravelMap() {
                             districtBn = "মৌলভীবাজার";
                           else if (geoName === "habiganj") districtBn = "হবিগঞ্জ";
 
-                          const isDistrictSelected = selectedDistricts.includes(districtBn);
                           const [x, y] = geoCentroid(geo);
 
                           return (
                             <React.Fragment key={geo.rsmKey}>
+                              {/* 🌟 জেলার ব্যাকগ্রাউন্ড সবসময় ধূসর থাকবে 🌟 */}
                               <Geography
                                 geography={geo}
-                                fill={isDistrictSelected ? activeTheme.color : "#E5E0D5"}
+                                fill="#E5E0D5"
                                 stroke="#FFFFFF"
                                 strokeWidth={2}
                                 style={{
                                   default: { outline: "none", transition: "fill 300ms" },
-                                  hover: { fill: isDistrictSelected ? activeTheme.color : "#d6d0c4", outline: "none" },
+                                  hover: { fill: "#d6d0c4", outline: "none" },
                                   pressed: { outline: "none" },
                                 } as any}
                               />
 
-                              {isDistrictSelected && (
-                                <Marker coordinates={[x, y]}>
-                                  <circle r={5} fill="#D32F2F" stroke="#FFFFFF" strokeWidth={2} className="drop-shadow-md" />
-                                  <text
-                                    textAnchor="middle"
-                                    y={-12}
-                                    style={{
-                                      fontFamily: "inherit",
-                                      fill: "#FFFFFF",
-                                      fontSize: "14px",
-                                      fontWeight: "bold",
-                                    }}
-                                    stroke="#1A1A1A"
-                                    strokeWidth={0.8}
-                                    paintOrder="stroke"
-                                    className="pointer-events-none drop-shadow-md"
-                                  >
-                                    {districtBn}
-                                  </text>
-                                </Marker>
-                              )}
+                              {/* 🌟 জেলার নাম সবসময় দেখা যাবে 🌟 */}
+                              <Marker coordinates={[x, y]}>
+                                <text
+                                  textAnchor="middle"
+                                  y={0}
+                                  style={{
+                                    fontFamily: "inherit",
+                                    fill: "#173D2B", // গাঢ় সবুজ লেখা
+                                    fontSize: "18px",
+                                    fontWeight: "900",
+                                    paintOrder: "stroke",
+                                  }}
+                                  stroke="#FFFFFF" // সাদা আউটলাইন
+                                  strokeWidth={3}
+                                  className="pointer-events-none drop-shadow-sm"
+                                >
+                                  {districtBn}
+                                </text>
+                              </Marker>
                             </React.Fragment>
                           );
                         })
                     }
                   </Geographies>
 
+                  {/* 🌟 ৫২টি স্পট (সিলেক্ট করলে শুধুমাত্র সেই স্পটটি সবুজ হবে) 🌟 */}
                   {spotsData.map((spot) => {
                     const isSelected = visitedSpots.includes(spot.id);
 
@@ -515,28 +486,39 @@ export default function TravelMap() {
                           className="cursor-pointer group"
                           onClick={() => toggleVisited(spot.id)}
                         >
+                          {/* ডট (সিলেক্ট না করলে লাল, করলে থিমের রঙ) */}
                           <circle
-                            r={isSelected ? 3.5 : 2.5}
-                            fill={isSelected ? "#FFFFFF" : "#D32F2F"}
-                            stroke={isSelected ? "#1A1A1A" : "#FFFFFF"}
-                            strokeWidth={1.5}
-                            className="transition-all duration-200 group-hover:r-4"
-                          />
-                          <text
-                            textAnchor="middle"
-                            y={-8}
-                            fontSize={7.5}
-                            fontWeight="bold"
-                            fill="#1A1A1A"
+                            r={isSelected ? 4.5 : 2.5}
+                            fill={isSelected ? activeTheme.color : "#D32F2F"}
                             stroke="#FFFFFF"
-                            strokeWidth={2.5}
-                            paintOrder="stroke"
-                            className={`pointer-events-none transition-opacity duration-200 drop-shadow-sm ${
-                              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            }`}
-                          >
-                            {spot.name}
-                          </text>
+                            strokeWidth={1.5}
+                            className="transition-all duration-200 group-hover:r-5"
+                          />
+                          
+                          {/* সিলেক্ট করলে নামের পেছনে ব্যাকগ্রাউন্ড (পিল) এবং লেখা আসবে */}
+                          {isSelected && (
+                            <g transform="translate(0, -12)">
+                              <rect
+                                x={-(spot.name.length * 3.5 + 6)}
+                                y={-8}
+                                width={spot.name.length * 7 + 12}
+                                height={14}
+                                rx={7}
+                                fill={activeTheme.color}
+                                className="drop-shadow-md opacity-95"
+                              />
+                              <text
+                                textAnchor="middle"
+                                y={2}
+                                fontSize={7.5}
+                                fontWeight="bold"
+                                fill="#FFFFFF"
+                                className="pointer-events-none"
+                              >
+                                {spot.name}
+                              </text>
+                            </g>
+                          )}
                         </g>
                       </Marker>
                     );
