@@ -20,13 +20,12 @@ import {
 } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
-// 🌟 অফিসিয়াল এবং নির্ভরযোগ্য ম্যাপ ডেটা লিংক 🌟
+// 🌟 সমাধান ১: CORS মুক্ত লিংক (গিটহাবের রিডাইরেক্ট লিংক বাদ দেওয়া হয়েছে) 🌟
 const geoUrls = [
-  "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BGD/ADM2/geoBoundaries-BGD-ADM2.geojson",
-  "https://raw.githubusercontent.com/fahim-muntasir-niloy/Bangladesh-geojson_project/main/Geo%20Json%20Maps/BD_Districts.json",
+  "/bangladesh.geojson", // লোকাল ফাইল (সবচেয়ে নিরাপদ)
+  "https://raw.githubusercontent.com/fahim-muntasir-niloy/Bangladesh-geojson_project/main/Geo%20Json%20Maps/BD_Districts.json"
 ];
 
-// কালার থিম
 const themes = [
   { id: "green", color: "#1D9F53" },
   { id: "darkblue", color: "#1E3A8A" },
@@ -37,13 +36,10 @@ const themes = [
 
 export default function TravelMap() {
   const [isClient, setIsClient] = useState(false);
-
   const [userImage, setUserImage] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
-
   const [visitedSpots, setVisitedSpots] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-
   const [activeTheme, setActiveTheme] = useState(themes[0]);
 
   const [mapData, setMapData] = useState<any>(null);
@@ -51,7 +47,6 @@ export default function TravelMap() {
 
   const mapRef = useRef<HTMLDivElement>(null);
 
-  // Client এবং ম্যাপ লোড
   useEffect(() => {
     setIsClient(true);
 
@@ -82,7 +77,6 @@ export default function TravelMap() {
     loadMapData();
   }, []);
 
-  // স্পট সার্চ
   const filteredSpots = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return spotsData;
@@ -94,10 +88,7 @@ export default function TravelMap() {
     );
   }, [searchQuery]);
 
-  // ছবি আপলোড
-  const handleImageUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -113,7 +104,6 @@ export default function TravelMap() {
     reader.readAsDataURL(file);
   };
 
-  // স্পট নির্বাচন
   const toggleVisited = (id: number) => {
     setVisitedSpots((previous) =>
       previous.includes(id)
@@ -122,33 +112,25 @@ export default function TravelMap() {
     );
   };
 
-  // সব স্পট নির্বাচন
   const selectAll = () => {
     setVisitedSpots(spotsData.map((spot) => spot.id));
   };
 
-  // সব স্পট মুছে ফেলা
   const clearAll = () => {
     setVisitedSpots([]);
   };
 
-  // একটি জেলার সব স্পট নির্বাচন
   const toggleDistrict = (districtSpots: typeof spotsData) => {
     const ids = districtSpots.map((spot) => spot.id);
     const allSelected = ids.every((id) => visitedSpots.includes(id));
 
     if (allSelected) {
-      setVisitedSpots((previous) =>
-        previous.filter((id) => !ids.includes(id))
-      );
+      setVisitedSpots((previous) => previous.filter((id) => !ids.includes(id)));
     } else {
-      setVisitedSpots((previous) =>
-        Array.from(new Set([...previous, ...ids]))
-      );
+      setVisitedSpots((previous) => Array.from(new Set([...previous, ...ids])));
     }
   };
 
-  // ম্যাপ ডাউনলোড
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
@@ -170,17 +152,15 @@ export default function TravelMap() {
         const imgProps = pdf.getImageProperties(imageData);
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const ratio = Math.min(
-          pageWidth / imgProps.width,
-          pageHeight / imgProps.height
-        );
+        const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
 
         const width = imgProps.width * ratio;
         const height = imgProps.height * ratio;
 
+        // 🌟 সমাধান ২: TypeScript এরর ফিক্স (এখানে "PNG" সরাসরি দেওয়া হলো) 🌟
         pdf.addImage(
           imageData,
-          format === "jpg" ? "JPEG" : "PNG",
+          "PNG", 
           (pageWidth - width) / 2,
           5,
           width,
@@ -200,10 +180,7 @@ export default function TravelMap() {
     }
   };
 
-  // নির্বাচনের শতকরা হার
-  const progress = Math.round(
-    (visitedSpots.length / spotsData.length) * 100
-  );
+  const progress = Math.round((visitedSpots.length / spotsData.length) * 100);
 
   if (!isClient) {
     return (
@@ -215,7 +192,6 @@ export default function TravelMap() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F6F4]">
-      {/* HEADER */}
       <header className="w-full max-w-[1400px] mx-auto p-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="bg-[#1D9F53] p-2 rounded-lg">
@@ -238,9 +214,7 @@ export default function TravelMap() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
       <div className="w-full max-w-[1300px] mx-auto p-4 flex flex-col lg:flex-row gap-6 mt-2 mb-12">
-        {/* LEFT SIDEBAR */}
         <aside className="w-full lg:w-[380px] shrink-0">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[750px]">
             <div className="flex justify-between items-center mb-4">
@@ -337,7 +311,6 @@ export default function TravelMap() {
           </div>
         </aside>
 
-        {/* RIGHT CONTENT */}
         <main className="flex-1 min-w-0 flex flex-col gap-4">
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4">
             <div className="flex items-center gap-3">
@@ -391,7 +364,6 @@ export default function TravelMap() {
             </div>
           </div>
 
-          {/* MAP DESIGN */}
           <div
             ref={mapRef}
             className="relative bg-[#F8F6F0] w-full min-h-[700px] rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-8 flex flex-col items-center"
@@ -445,9 +417,14 @@ export default function TravelMap() {
                   <Geographies geography={mapData}>
                     {({ geographies }) =>
                       geographies
-                        // 🌟 শুধু সিলেট বিভাগের ৪টি জেলা ফিল্টার 🌟
+                        // 🌟 সমাধান ৩: TypeScript Null Check (?.) যোগ করা হয়েছে 🌟
                         .filter((geo) => {
-                          const name = (geo.properties.NAME_2 || geo.properties.name || geo.properties.ADM2_EN || "").toLowerCase();
+                          const name = (
+                            geo.properties?.NAME_2 ||
+                            geo.properties?.name ||
+                            geo.properties?.ADM2_EN ||
+                            ""
+                          ).toLowerCase();
                           return (
                             name === "sylhet" ||
                             name === "sunamganj" ||
@@ -457,19 +434,25 @@ export default function TravelMap() {
                           );
                         })
                         .map((geo) => {
-                          const geoName = (geo.properties.NAME_2 || geo.properties.name || geo.properties.ADM2_EN || "").toLowerCase();
-                          
+                          const geoName = (
+                            geo.properties?.NAME_2 ||
+                            geo.properties?.name ||
+                            geo.properties?.ADM2_EN ||
+                            ""
+                          ).toLowerCase();
+
                           let districtBn = "";
                           if (geoName === "sylhet") districtBn = "সিলেট";
                           else if (geoName === "sunamganj") districtBn = "সুনামগঞ্জ";
-                          else if (geoName === "moulvibazar" || geoName === "maulvibazar") districtBn = "মৌলভীবাজার";
+                          else if (geoName === "moulvibazar" || geoName === "maulvibazar")
+                            districtBn = "মৌলভীবাজার";
                           else if (geoName === "habiganj") districtBn = "হবিগঞ্জ";
 
                           const [x, y] = geoCentroid(geo);
 
                           return (
                             <React.Fragment key={geo.rsmKey}>
-                              {/* 🌟 জেলার ব্যাকগ্রাউন্ড (সবসময় ধূসর) 🌟 */}
+                              {/* 🌟 সমাধান ৪: TypeScript Style Error (as any) 🌟 */}
                               <Geography
                                 geography={geo}
                                 fill="#E5E0D5"
@@ -479,17 +462,16 @@ export default function TravelMap() {
                                   default: { outline: "none", transition: "fill 300ms" },
                                   hover: { fill: "#d6d0c4", outline: "none" },
                                   pressed: { outline: "none" },
-                                }}
+                                } as any}
                               />
-                              
-                              {/* 🌟 জেলার নাম (শুধু একবার করে দেখাবে) 🌟 */}
+
                               <Marker coordinates={[x, y]}>
                                 <text
                                   textAnchor="middle"
                                   y={0}
                                   style={{
                                     fontFamily: "inherit",
-                                    fill: "#173D2B", // গাঢ় সবুজ
+                                    fill: "#173D2B",
                                     fontSize: "18px",
                                     fontWeight: "900",
                                     paintOrder: "stroke",
@@ -507,7 +489,6 @@ export default function TravelMap() {
                     }
                   </Geographies>
 
-                  {/* 🌟 ৫২টি দর্শনীয় স্থান (সিলেক্ট করলে ব্যাকগ্রাউন্ড ও ডট সবুজ হবে) 🌟 */}
                   {spotsData.map((spot) => {
                     const isSelected = visitedSpots.includes(spot.id);
 
@@ -520,7 +501,6 @@ export default function TravelMap() {
                           className="cursor-pointer group"
                           onClick={() => toggleVisited(spot.id)}
                         >
-                          {/* ডট (সবসময় থাকবে, সিলেক্ট করলে সাদা হবে) */}
                           <circle
                             r={isSelected ? 3.5 : 2.5}
                             fill={isSelected ? "#FFFFFF" : "#D32F2F"}
@@ -528,24 +508,21 @@ export default function TravelMap() {
                             strokeWidth={1.5}
                             className="transition-all duration-200 group-hover:r-4"
                           />
-                          
-                          {/* সিলেক্ট করলে নামের পেছনে ব্যাকগ্রাউন্ড (পিল) এবং লেখা আসবে */}
+
                           {isSelected && (
                             <g transform="translate(0, -12)">
-                              {/* সবুজ ব্যাকগ্রাউন্ড পিল */}
                               <rect
                                 x={-(spot.name.length * 3.5 + 6)}
                                 y={-8}
                                 width={spot.name.length * 7 + 12}
                                 height={14}
-                                rx={7} // গোলাকার কোণা
+                                rx={7}
                                 fill={activeTheme.color}
                                 className="drop-shadow-md opacity-95"
                               />
-                              {/* সাদা লেখা */}
                               <text
                                 textAnchor="middle"
-                                y={2} // পিলের ভেতরে টেক্সট পজিশন
+                                y={2}
                                 fontSize={7.5}
                                 fontWeight="bold"
                                 fill="#FFFFFF"
@@ -563,7 +540,6 @@ export default function TravelMap() {
               )}
             </div>
 
-            {/* MAP FOOTER */}
             <div className="w-full z-10 pt-6 mt-auto">
               <div
                 className="flex justify-between items-center mb-2 text-sm font-bold"
@@ -604,7 +580,6 @@ export default function TravelMap() {
               </div>
             </div>
 
-            {/* USER PHOTO */}
             {userImage && (
               <div className="absolute top-28 left-10 bg-white p-2.5 rounded-xl shadow-2xl -rotate-3 border-4 border-white z-30">
                 <img
@@ -621,7 +596,6 @@ export default function TravelMap() {
             )}
           </div>
 
-          {/* DOWNLOAD BUTTONS */}
           <div className="flex flex-col items-center gap-3 mt-2">
             <button
               onClick={() => downloadMap("png")}
