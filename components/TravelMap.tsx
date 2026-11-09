@@ -2,22 +2,10 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-import {
-  Upload,
-  Download,
-  Search,
-  Share2,
-  Globe,
-  User,
-} from "lucide-react";
+import { Upload, Download, Search, Share2, Globe, User } from "lucide-react";
 import { toPng } from "html-to-image"; 
 import jsPDF from "jspdf";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-} from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
 const geoUrls = [
@@ -57,11 +45,7 @@ export default function TravelMap() {
 
           const data = await response.json();
 
-          if (
-            data &&
-            data.type === "FeatureCollection" &&
-            Array.isArray(data.features)
-          ) {
+          if (data && data.type === "FeatureCollection" && Array.isArray(data.features)) {
             setMapData(data);
             setMapError(false);
             return;
@@ -130,6 +114,26 @@ export default function TravelMap() {
     }
   };
 
+  // 🌟 শেয়ার বাটনের ফাংশন (মোবাইল ও পিসি উভয় জায়গায় কাজ করবে) 🌟
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'আমার সিলেট ভ্রমণ ম্যাপ',
+          text: 'আমার তৈরি করা সিলেট ভ্রমণ ম্যাপটি দেখুন!',
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // যদি ডিভাইসে নেটিভ শেয়ার সাপোর্ট না থাকে তবে লিংক কপি হবে
+      navigator.clipboard.writeText(window.location.href);
+      alert('লিংকটি কপি করা হয়েছে! এখন বন্ধুদের সাথে শেয়ার করুন।');
+    }
+  };
+
+  // 🌟 ডাউনলোড ফাংশন (সরাসরি ডাউনলোড হবে) 🌟
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
 
@@ -155,21 +159,16 @@ export default function TravelMap() {
         const width = imgProps.width * ratio;
         const height = imgProps.height * ratio;
 
-        pdf.addImage(
-          dataUrl,
-          "PNG",
-          (pageWidth - width) / 2,
-          5,
-          width,
-          height
-        );
-
+        pdf.addImage(dataUrl, "PNG", (pageWidth - width) / 2, 5, width, height);
         pdf.save("আমার-সিলেট-ম্যাপ.pdf");
       } else {
+        // 🌟 মোবাইল ও পিসি উভয় জায়গায় সরাসরি ডাউনলোড শুরু হবে 🌟
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = `আমার-সিলেট-ম্যাপ.${format}`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       }
     } catch (error) {
       console.error("Download failed:", error);
@@ -402,10 +401,7 @@ export default function TravelMap() {
               ) : (
                 <ComposableMap
                   projection="geoMercator"
-                  projectionConfig={{
-                    scale: 26000,
-                    center: [91.6, 24.6],
-                  }}
+                  projectionConfig={{ scale: 26000, center: [91.6, 24.6] }}
                   width={800}
                   height={800}
                   className="w-full h-full max-h-[600px]"
@@ -555,7 +551,6 @@ export default function TravelMap() {
                 />
               </div>
 
-              {/* 🌟 এখানে ছবির সাইজ বড় করা হয়েছে (w-7 h-7) এবং বর্ডার যুক্ত করা হয়েছে 🌟 */}
               <div className="flex justify-between items-end border-t border-gray-200 pt-5">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
@@ -575,25 +570,27 @@ export default function TravelMap() {
                     <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
                   </p>
                 </div>
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+                {/* 🌟 শেয়ার বাটন এখন কাজ করবে 🌟 */}
+                <button
+                  onClick={handleShare}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:opacity-80 transition cursor-pointer"
                   style={{ backgroundColor: activeTheme.color }}
                 >
                   <Share2 size={20} className="text-white" />
-                </div>
+                </button>
               </div>
             </div>
 
-            {/* 🌟 ইউজারের আপলোড করা ছবি (বড় করে ম্যাপের ওপর) 🌟 */}
+            {/* 🌟 মোবাইলে ছবি ছোট হবে ও মাঝখানে থাকবে, পিসিতে বড় হবে 🌟 */}
             {userImage && (
-              <div className="absolute top-28 left-4 bg-white p-2.5 rounded-xl shadow-2xl -rotate-3 border-4 border-white z-30">
+              <div className="absolute top-[260px] md:top-28 left-2 md:left-8 bg-white p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-2xl -rotate-3 border-2 md:border-4 border-white z-30">
                 <img
                   src={userImage}
                   alt="আপনার ছবি"
-                  className="w-24 h-24 object-cover rounded-lg"
+                  className="w-14 h-14 md:w-24 md:h-24 object-cover rounded-md md:rounded-lg"
                 />
                 {userName && (
-                  <p className="text-center text-xs font-bold mt-2 text-gray-800 bg-gray-100 py-1 rounded uppercase">
+                  <p className="text-center text-[8px] md:text-xs font-bold mt-1 md:mt-2 text-gray-800 bg-gray-100 py-0.5 md:py-1 rounded uppercase truncate max-w-[56px] md:max-w-full">
                     {userName}
                   </p>
                 )}
