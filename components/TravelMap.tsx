@@ -2,10 +2,22 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-import { Upload, Download, Search, Share2, Globe, User } from "lucide-react";
+import {
+  Upload,
+  Download,
+  Search,
+  Share2,
+  Globe,
+  User,
+} from "lucide-react";
 import { toPng } from "html-to-image"; 
 import jsPDF from "jspdf";
-import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Marker,
+} from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
 const geoUrls = [
@@ -435,7 +447,6 @@ export default function TravelMap() {
 
                           return (
                             <React.Fragment key={geo.rsmKey}>
-                              {/* 🌟 জেলার ব্যাকগ্রাউন্ড সবসময় ধূসর থাকবে 🌟 */}
                               <Geography
                                 geography={geo}
                                 fill="#E5E0D5"
@@ -448,19 +459,18 @@ export default function TravelMap() {
                                 } as any}
                               />
 
-                              {/* 🌟 জেলার নাম সবসময় দেখা যাবে 🌟 */}
                               <Marker coordinates={[x, y]}>
                                 <text
                                   textAnchor="middle"
                                   y={0}
                                   style={{
                                     fontFamily: "inherit",
-                                    fill: "#173D2B", // গাঢ় সবুজ লেখা
+                                    fill: "#173D2B",
                                     fontSize: "18px",
                                     fontWeight: "900",
                                     paintOrder: "stroke",
                                   }}
-                                  stroke="#FFFFFF" // সাদা আউটলাইন
+                                  stroke="#FFFFFF"
                                   strokeWidth={3}
                                   className="pointer-events-none drop-shadow-sm"
                                 >
@@ -473,7 +483,6 @@ export default function TravelMap() {
                     }
                   </Geographies>
 
-                  {/* 🌟 ৫২টি স্পট (সিলেক্ট করলে শুধুমাত্র সেই স্পটটি সবুজ হবে) 🌟 */}
                   {spotsData.map((spot) => {
                     const isSelected = visitedSpots.includes(spot.id);
 
@@ -486,7 +495,6 @@ export default function TravelMap() {
                           className="cursor-pointer group"
                           onClick={() => toggleVisited(spot.id)}
                         >
-                          {/* ডট (সিলেক্ট না করলে লাল, করলে থিমের রঙ) */}
                           <circle
                             r={isSelected ? 4.5 : 2.5}
                             fill={isSelected ? activeTheme.color : "#D32F2F"}
@@ -495,7 +503,6 @@ export default function TravelMap() {
                             className="transition-all duration-200 group-hover:r-5"
                           />
                           
-                          {/* সিলেক্ট করলে নামের পেছনে ব্যাকগ্রাউন্ড (পিল) এবং লেখা আসবে */}
                           {isSelected && (
                             <g transform="translate(0, -12)">
                               <rect
@@ -548,14 +555,24 @@ export default function TravelMap() {
                 />
               </div>
 
+              {/* 🌟 এখানে ছবির সাইজ বড় করা হয়েছে (w-7 h-7) এবং বর্ডার যুক্ত করা হয়েছে 🌟 */}
               <div className="flex justify-between items-end border-t border-gray-200 pt-5">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">
-                    মানচিত্র তৈরি করেছেন
-                  </p>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs font-medium text-gray-500">মানচিত্র তৈরি করেছেন:</span>
+                    
+                    <img 
+                      src="/profile.png" 
+                      alt="Creator" 
+                      className="w-7 h-7 rounded-full object-cover border-2 border-gray-200 shadow-sm" 
+                    />
+                    
+                    <span className="font-bold text-gray-800 text-sm uppercase">MD SHAKIL AHAMED</span>
+                  </div>
+                  
                   <p className="text-xl font-black text-[#1A1A1A]">
-                    ঘুরতে থাকুন{" "}
-                    <span className="text-blue-900">গোয়াইন এর সাথে</span>
+                    ঘুরে দেখুন{" "}
+                    <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
                   </p>
                 </div>
                 <div
@@ -567,15 +584,16 @@ export default function TravelMap() {
               </div>
             </div>
 
+            {/* 🌟 ইউজারের আপলোড করা ছবি (বড় করে ম্যাপের ওপর) 🌟 */}
             {userImage && (
-              <div className="absolute top-28 left-10 bg-white p-2.5 rounded-xl shadow-2xl -rotate-3 border-4 border-white z-30">
+              <div className="absolute top-28 left-4 bg-white p-2.5 rounded-xl shadow-2xl -rotate-3 border-4 border-white z-30">
                 <img
                   src={userImage}
                   alt="আপনার ছবি"
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 {userName && (
-                  <p className="text-center text-xs font-bold mt-2 text-gray-800 bg-gray-100 py-1 rounded">
+                  <p className="text-center text-xs font-bold mt-2 text-gray-800 bg-gray-100 py-1 rounded uppercase">
                     {userName}
                   </p>
                 )}
