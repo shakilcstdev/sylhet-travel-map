@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
 import { Upload, Download, Search, Share2, Globe, User } from "lucide-react";
-import { toPng } from "html-to-image"; 
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
@@ -133,18 +133,45 @@ export default function TravelMap() {
 
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
+    const element = mapRef.current;
 
     try {
       if (document.fonts) {
         await document.fonts.ready;
       }
 
-      const dataUrl = await toPng(mapRef.current, {
+      const originalStyles = {
+        width: element.style.width,
+        height: element.style.height,
+        maxWidth: element.style.maxWidth,
+        minWidth: element.style.minWidth,
+        maxHeight: element.style.maxHeight,
+        minHeight: element.style.minHeight,
+      };
+
+      // ডাউনলোডের জন্য ফিক্সড সাইজ
+      element.style.width = "800px";
+      element.style.height = "1000px";
+      element.style.maxWidth = "none";
+      element.style.minWidth = "800px";
+      element.style.maxHeight = "1000px";
+      element.style.minHeight = "1000px";
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(element, {
         cacheBust: true,
-        pixelRatio: 3, 
+        pixelRatio: 2,
         backgroundColor: "#F8F6F0",
-        style: { transform: "scale(1)" },
       });
+
+      // স্টাইল রিসেট
+      element.style.width = originalStyles.width;
+      element.style.height = originalStyles.height;
+      element.style.maxWidth = originalStyles.maxWidth;
+      element.style.minWidth = originalStyles.minWidth;
+      element.style.maxHeight = originalStyles.maxHeight;
+      element.style.minHeight = originalStyles.minHeight;
 
       if (format === "pdf") {
         const pdf = new jsPDF("p", "mm", "a4");
@@ -355,27 +382,25 @@ export default function TravelMap() {
             </div>
           </div>
 
-          {/* 🌟 ম্যাপ ক্যানভাস (aspect-[4/5] দেওয়া হয়েছে যাতে মোবাইলে ডাউনলোড করলে সাইজ লম্বা না হয়) 🌟 */}
           <div className="flex justify-center w-full">
             <div
               ref={mapRef}
               className="relative bg-[#F8F6F0] w-full max-w-[700px] aspect-[4/5] rounded-2xl shadow-2xl overflow-hidden border-[10px] border-white flex flex-col"
             >
               
-              {/* টপ সেকশন */}
-              <div className="flex justify-between items-start z-10 w-full p-6 md:p-8 pb-0">
+              {/* টপ সেকশন (মোবাইলে যাতে ওভারল্যাপ না হয় সেজন্য সাইজ ছোট করা হয়েছে) */}
+              <div className="flex justify-between items-start z-10 w-full p-4 md:p-8 pb-0 shrink-0">
                 
-                {/* বাম দিক: ছবি ও লেখা */}
-                <div className="flex items-start gap-3 md:gap-4">
+                <div className="flex items-start gap-2 md:gap-4">
                   {userImage && (
                     <div className="bg-white p-1.5 md:p-2 rounded-lg shadow-sm -rotate-2 border border-gray-200 w-fit z-20 shrink-0">
                       <img
                         src={userImage}
                         alt="আপনার ছবি"
-                        className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
+                        className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md"
                       />
                       {userName && (
-                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[64px] md:max-w-[80px]">
+                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[48px] md:max-w-[80px]">
                           {userName}
                         </p>
                       )}
@@ -383,46 +408,45 @@ export default function TravelMap() {
                   )}
 
                   <div className="flex flex-col pt-1">
-                    <h1 className="text-2xl md:text-4xl font-black text-[#1A1A1A] whitespace-nowrap leading-tight">
+                    <h1 className="text-xl md:text-4xl font-black text-[#1A1A1A] whitespace-nowrap leading-tight">
                       আমার সিলেট
                     </h1>
-                    <p className="text-xs md:text-sm font-semibold text-gray-600 mt-1">
+                    <p className="text-[10px] md:text-sm font-semibold text-gray-600 mt-0.5 md:mt-1 whitespace-nowrap">
                       ভ্রমণ ম্যাপ
                     </p>
                   </div>
                 </div>
 
-                {/* ডান দিক: কাউন্টার */}
-                <div className="flex items-end gap-1 shrink-0 pt-2">
+                <div className="flex items-end gap-0.5 md:gap-1 shrink-0 pt-2">
                   <span
-                    className="text-4xl md:text-6xl font-black leading-none"
+                    className="text-3xl md:text-6xl font-black leading-none"
                     style={{ color: activeTheme.color }}
                   >
                     {visitedSpots.length}
                   </span>
-                  <span className="text-gray-400 font-bold text-lg md:text-2xl mb-1">
+                  <span className="text-gray-400 font-bold text-sm md:text-2xl mb-0.5 md:mb-1">
                     /{spotsData.length}
                   </span>
                 </div>
               </div>
 
               {/* ম্যাপ এরিয়া */}
-              <div className="flex-1 w-full relative flex items-center justify-center p-4">
+              <div className="flex-1 min-h-0 w-full relative flex items-center justify-center p-2 md:p-4">
                 {mapError ? (
-                  <div className="text-red-500 font-bold text-center">
+                  <div className="text-red-500 font-bold text-center text-sm md:text-base">
                     ম্যাপ ফাইল লোড করা যায়নি।
                   </div>
                 ) : !mapData ? (
-                  <div className="text-gray-500 font-bold animate-pulse">
+                  <div className="text-gray-500 font-bold animate-pulse text-sm md:text-base">
                     ম্যাপ ডেটা লোড হচ্ছে...
                   </div>
                 ) : (
                   <ComposableMap
                     projection="geoMercator"
-                    projectionConfig={{ scale: 26000, center: [91.6, 24.6] }}
+                    projectionConfig={{ scale: 35000, center: [91.6, 24.6] }}
                     width={800}
-                    height={800}
-                    className="w-full h-full max-h-[350px] md:max-h-[450px]"
+                    height={1000}
+                    style={{ width: "100%", height: "100%" }}
                   >
                     <Geographies geography={mapData}>
                       {({ geographies }) =>
@@ -549,20 +573,20 @@ export default function TravelMap() {
               </div>
 
               {/* বটম সেকশন */}
-              <div className="w-full z-10 bg-[#F8F6F0] p-6 md:p-8 pt-4 border-t border-gray-200 mt-auto">
+              <div className="w-full z-10 bg-[#F8F6F0] p-4 md:p-8 pt-3 md:pt-4 border-t border-gray-200 mt-auto shrink-0">
                 <div
-                  className="flex justify-between items-center mb-2 text-xs md:text-sm font-bold"
+                  className="flex justify-between items-center mb-1.5 md:mb-2 text-[10px] md:text-sm font-bold"
                   style={{ color: activeTheme.color }}
                 >
                   <span>{progress}% সিলেট ঘোরা হয়েছে</span>
-                  <span className="text-gray-500 font-medium text-[10px] md:text-xs">
+                  <span className="text-gray-500 font-medium text-[8px] md:text-xs whitespace-nowrap">
                     মোট ৪ টি জেলা • {spotsData.length} টি স্পট
                   </span>
                 </div>
 
-                <div className="w-full bg-[#E5E0D5] rounded-full h-2 mb-4">
+                <div className="w-full bg-[#E5E0D5] rounded-full h-1.5 md:h-2 mb-3 md:mb-4">
                   <div
-                    className="h-2 rounded-full transition-all duration-500"
+                    className="h-1.5 md:h-2 rounded-full transition-all duration-500"
                     style={{
                       width: `${progress}%`,
                       backgroundColor: activeTheme.color,
@@ -570,31 +594,31 @@ export default function TravelMap() {
                   />
                 </div>
 
-                <div className="flex justify-between items-end mt-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] md:text-xs font-medium text-gray-500">মানচিত্র তৈরি করেছেন:</span>
+                <div className="flex justify-between items-end mt-2 md:mt-4">
+                  <div className="flex-1 pr-1 md:pr-2">
+                    <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
+                      <span className="text-[8px] md:text-xs font-medium text-gray-500 whitespace-nowrap">মানচিত্র তৈরি করেছেন:</span>
                       
                       <img 
                         src="/profile.png" 
                         alt="Creator" 
-                        className="w-5 h-5 md:w-6 md:h-6 rounded-full object-cover border border-gray-300" 
+                        className="w-4 h-4 md:w-6 md:h-6 rounded-full object-cover border border-gray-300 shrink-0" 
                       />
                       
-                      <span className="font-bold text-gray-800 text-[10px] md:text-xs uppercase">MD SHAKIL AHAMED</span>
+                      <span className="font-bold text-gray-800 text-[8px] md:text-xs uppercase whitespace-nowrap">MD SHAKIL AHAMED</span>
                     </div>
                     
-                    <p className="text-lg md:text-2xl font-black text-[#1A1A1A]">
+                    <p className="text-sm md:text-2xl font-black text-[#1A1A1A] whitespace-nowrap">
                       ঘুরে দেখুন{" "}
                       <span className="text-blue-900">পূর্ণ সিলেট বিভাগ</span>
                     </p>
                   </div>
                   <button
                     onClick={handleShare}
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-md hover:opacity-80 transition cursor-pointer"
+                    className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-md hover:opacity-80 transition cursor-pointer shrink-0"
                     style={{ backgroundColor: activeTheme.color }}
                   >
-                    <Share2 size={20} className="text-white" />
+                    <Share2 size={16} className="md:w-5 md:h-5 text-white" />
                   </button>
                 </div>
               </div>
