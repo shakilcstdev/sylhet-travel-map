@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
@@ -79,7 +78,6 @@ export default function TravelMap() {
       .center([91.6, 24.6])
       .translate([400, 500]);
 
-    // FIX: Projection থেকে null আসলে handle করা
     const points: [number, number][] = spotsData.map((spot) => {
       const point = projection(
         spot.coordinates as [number, number]
@@ -100,7 +98,6 @@ export default function TravelMap() {
     return spotsData.map((spot, index) => {
       const polygon = voronoi.cellPolygon(index);
 
-      // FIX: points[index] undefined হতে পারে
       const point = points[index];
 
       if (!point) {
@@ -462,48 +459,21 @@ export default function TravelMap() {
 
         pdf.save("সিলেট-ভ্রমণ-ম্যাপ.pdf");
       } else {
+        // আপডেট করা অংশ: শেয়ার মেনু বাদ দিয়ে সরাসরি ডাউনলোড করা হচ্ছে
         const res = await fetch(dataUrl);
         const blob = await res.blob();
 
-        const file = new File(
-          [blob],
-          `সিলেট-ভ্রমণ-ম্যাপ.${format}`,
-          { type: blob.type }
-        );
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
 
-        const isMobile =
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          );
+        link.href = url;
+        link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
 
-        if (
-          isMobile &&
-          navigator.canShare &&
-          navigator.canShare({ files: [file] })
-        ) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: "আমার সিলেট ভ্রমণ ম্যাপ",
-              text: "আমার তৈরি করা সিলেট ভ্রমণ ম্যাপটি দেখুন!",
-            });
-          } catch (error) {
-            console.log("Share failed:", error);
-          }
-        } else {
-          const url = window.URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-          const link = document.createElement("a");
-
-          link.href = url;
-          link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
-
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          window.URL.revokeObjectURL(url);
-        }
+        window.URL.revokeObjectURL(url);
       }
 
       setDownloadCount((prevCount) => {
