@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-import { Upload, Download, Search, Share2, Globe, User } from "lucide-react";
+import { Upload, Download, Search, Share2, Globe, User, Menu, MapPin, X } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
@@ -32,19 +32,42 @@ export default function TravelMap() {
   const [mapData, setMapData] = useState<any>(null);
   const [mapError, setMapError] = useState(false);
 
+  const [downloadCount, setDownloadCount] = useState(0);
+
+  // 🌟 Auth States 🌟
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
+
+    // 🌟 Check Auth State 🌟
+    const savedUser = localStorage.getItem("sylhet_map_user");
+    if (savedUser) {
+      setIsLoggedIn(true);
+      setLoggedInUser(savedUser);
+    }
+
+    // 🌟 Load Download Count 🌟
+    const storedCount = localStorage.getItem("sylhet_map_download_count");
+    if (storedCount) {
+      setDownloadCount(parseInt(storedCount, 10));
+    } else {
+      localStorage.setItem("sylhet_map_download_count", "0");
+    }
 
     const loadMapData = async () => {
       for (const url of geoUrls) {
         try {
           const response = await fetch(url);
           if (!response.ok) continue;
-
           const data = await response.json();
-
           if (data && data.type === "FeatureCollection" && Array.isArray(data.features)) {
             setMapData(data);
             setMapError(false);
@@ -60,6 +83,29 @@ export default function TravelMap() {
     loadMapData();
   }, []);
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authName || !authEmail || !authPassword) {
+      alert("সব তথ্য পূরণ করুন!");
+      return;
+    }
+    setIsLoggedIn(true);
+    setLoggedInUser(authName);
+    localStorage.setItem("sylhet_map_user", authName);
+    setShowAuthModal(false);
+    
+    // Clear form
+    setAuthName("");
+    setAuthEmail("");
+    setAuthPassword("");
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoggedInUser("");
+    localStorage.removeItem("sylhet_map_user");
+  };
+
   const filteredSpots = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return spotsData;
@@ -74,12 +120,10 @@ export default function TravelMap() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith("image/")) {
       alert("অনুগ্রহ করে একটি ছবি নির্বাচন করুন।");
       return;
     }
-
     const reader = new FileReader();
     reader.onloadend = () => {
       setUserImage(reader.result as string);
@@ -95,18 +139,12 @@ export default function TravelMap() {
     );
   };
 
-  const selectAll = () => {
-    setVisitedSpots(spotsData.map((spot) => spot.id));
-  };
-
-  const clearAll = () => {
-    setVisitedSpots([]);
-  };
+  const selectAll = () => setVisitedSpots(spotsData.map((spot) => spot.id));
+  const clearAll = () => setVisitedSpots([]);
 
   const toggleDistrict = (districtSpots: typeof spotsData) => {
     const ids = districtSpots.map((spot) => spot.id);
     const allSelected = ids.every((id) => visitedSpots.includes(id));
-
     if (allSelected) {
       setVisitedSpots((previous) => previous.filter((id) => !ids.includes(id)));
     } else {
@@ -118,7 +156,7 @@ export default function TravelMap() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'আমার সিলেট ভ্রমণ ম্যাপ',
+          title: 'সিলেট ভ্রমণ ম্যাপ',
           text: 'আমার তৈরি করা সিলেট ভ্রমণ ম্যাপটি দেখুন!',
           url: window.location.href,
         });
@@ -133,45 +171,79 @@ export default function TravelMap() {
 
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
-    const element = mapRef.current;
+    const originalNode = mapRef.current;
+
+    const clone = originalNode.cloneNode(true) as HTMLElement;
+    
+    clone.style.width = "800px";
+    clone.style.height = "1000px";
+    clone.style.maxWidth = "none";
+    clone.style.maxHeight = "none";
+    clone.style.position = "fixed";
+    clone.style.top = "0";
+    clone.style.left = "0";
+    clone.style.zIndex = "-9999";
+    clone.style.backgroundColor = "#F8F6F0";
+
+    const header = clone.querySelector('div.flex.justify-between.items-start') as HTMLElement;
+    if (header) {
+      header.style.padding = "32px 32px 0 32px";
+      const imgContainer = header.querySelector('div.bg-white') as HTMLElement;
+      if (imgContainer) {
+        imgContainer.style.width = "96px";
+        imgContainer.style.padding = "8px";
+        const img = imgContainer.querySelector('img') as HTMLElement;
+        if (img) {
+          img.style.width = "80px";
+          img.style.height = "80px";
+        }
+        const nameP = imgContainer.querySelector('p') as HTMLElement;
+        if (nameP) {
+          nameP.style.fontSize = "9px";
+        }
+      }
+      const title = header.querySelector('h1') as HTMLElement;
+      if (title) title.style.fontSize = "36px";
+      
+      const subtitle = header.querySelector('p.text-\\[10px\\]') as HTMLElement;
+      if (subtitle) subtitle.style.fontSize = "14px";
+
+      const counter = header.querySelector('span.text-3xl') as HTMLElement;
+      if (counter) counter.style.fontSize = "60px";
+      
+      const counterTotal = header.querySelector('span.text-gray-400') as HTMLElement;
+      if (counterTotal) counterTotal.style.fontSize = "24px";
+    }
+
+    const mapArea = clone.querySelector('.flex-1.min-h-0') as HTMLElement;
+    if (mapArea) {
+      mapArea.style.flex = "none";
+      mapArea.style.height = "680px";
+    }
+
+    const footer = clone.querySelector('div.border-t') as HTMLElement;
+    if (footer) {
+      footer.style.padding = "32px";
+      footer.style.paddingTop = "16px";
+    }
+
+    document.body.appendChild(clone);
 
     try {
       if (document.fonts) {
         await document.fonts.ready;
       }
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const originalStyles = {
-        width: element.style.width,
-        height: element.style.height,
-        maxWidth: element.style.maxWidth,
-        minWidth: element.style.minWidth,
-        maxHeight: element.style.maxHeight,
-        minHeight: element.style.minHeight,
-      };
-
-      // ডাউনলোডের জন্য ফিক্সড সাইজ
-      element.style.width = "800px";
-      element.style.height = "1000px";
-      element.style.maxWidth = "none";
-      element.style.minWidth = "800px";
-      element.style.maxHeight = "1000px";
-      element.style.minHeight = "1000px";
-
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      const dataUrl = await toPng(element, {
+      const dataUrl = await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#F8F6F0",
+        width: 800,
+        height: 1000,
       });
 
-      // স্টাইল রিসেট
-      element.style.width = originalStyles.width;
-      element.style.height = originalStyles.height;
-      element.style.maxWidth = originalStyles.maxWidth;
-      element.style.minWidth = originalStyles.minWidth;
-      element.style.maxHeight = originalStyles.maxHeight;
-      element.style.minHeight = originalStyles.minHeight;
+      document.body.removeChild(clone);
 
       if (format === "pdf") {
         const pdf = new jsPDF("p", "mm", "a4");
@@ -184,16 +256,26 @@ export default function TravelMap() {
         const height = imgProps.height * ratio;
 
         pdf.addImage(dataUrl, "PNG", (pageWidth - width) / 2, 5, width, height);
-        pdf.save("আমার-সিলেট-ম্যাপ.pdf");
+        pdf.save("সিলেট-ভ্রমণ-ম্যাপ.pdf");
       } else {
         const link = document.createElement("a");
         link.href = dataUrl;
-        link.download = `আমার-সিলেট-ম্যাপ.${format}`;
+        link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
+
+      setDownloadCount((prevCount) => {
+        const newCount = prevCount + 1;
+        localStorage.setItem("sylhet_map_download_count", newCount.toString());
+        return newCount;
+      });
+
     } catch (error) {
+      if (document.body.contains(clone)) {
+        document.body.removeChild(clone);
+      }
       console.error("Download failed:", error);
       alert("ম্যাপ ডাউনলোড করা যাচ্ছে না। আবার চেষ্টা করুন।");
     }
@@ -210,33 +292,133 @@ export default function TravelMap() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F6F4]">
-      <header className="w-full max-w-[1400px] mx-auto p-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="bg-[#1D9F53] p-2 rounded-lg">
-            <Globe className="text-white" size={24} />
-          </div>
-          <div className="leading-tight">
-            <h1 className="font-bold text-lg text-gray-900">আমার</h1>
-            <h1 className="font-bold text-lg text-gray-900">সিলেট</h1>
+    <div className="flex flex-col min-h-screen bg-[#F3F6F4] relative">
+      
+      {/* 🌟 Auth Modal (Pop-up) 🌟 */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md relative shadow-2xl animate-in fade-in zoom-in duration-200">
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 p-1.5 rounded-full transition"
+            >
+              <X size={18} />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">সাইন ইন করুন</h2>
+            <p className="text-sm text-gray-500 mb-6">আপনার ম্যাপ সেভ করতে এবং আরও ফিচার পেতে লগইন করুন।</p>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">আপনার নাম</label>
+                <input 
+                  type="text" 
+                  value={authName}
+                  onChange={(e) => setAuthName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" 
+                  placeholder="যেমন: শাকিল আহমেদ"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">ইমেইল</label>
+                <input 
+                  type="email" 
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" 
+                  placeholder="hello@example.com"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">পাসওয়ার্ড</label>
+                <input 
+                  type="password" 
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" 
+                  placeholder="********"
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="w-full bg-[#1D9F53] text-white py-3 rounded-lg font-bold text-sm hover:bg-green-700 transition"
+              >
+                লগইন করুন
+              </button>
+            </form>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-[#1D9F53]">বাংলা</span>
-          <button
-            className="flex items-center gap-1 px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-full hover:bg-gray-50"
-            onClick={() => alert("সাইন ইন সুবিধা পরবর্তীতে যুক্ত করা হবে।")}
-          >
-            <User size={16} /> সাইন ইন
-          </button>
-        </div>
-      </header>
+      )}
 
-      <div className="w-full max-w-[1300px] mx-auto p-4 flex flex-col lg:flex-row gap-6 mt-2 mb-12">
+      {/* 🌟 নেভবার 🌟 */}
+      <nav className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-[1300px] mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#1D9F53] p-1.5 rounded-lg flex items-center justify-center">
+              <MapPin className="text-white" size={20} />
+            </div>
+            <div className="leading-tight">
+              <h1 className="font-bold text-md text-gray-900">আমার</h1>
+              <h1 className="font-bold text-md text-gray-900">সিলেট</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="text-xs font-bold px-3 py-1.5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition">
+              EN
+            </button>
+            
+            {/* 🌟 Auth Button Logic in Navbar 🌟 */}
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-gray-800 hidden sm:block">
+                  স্বাগতম, {loggedInUser.split(" ")[0]}
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 transition text-xs font-bold px-3"
+                >
+                  লগআউট
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition text-xs font-bold"
+              >
+                <User size={16} />
+                সাইন ইন
+              </button>
+            )}
+
+            <button className="p-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition hidden sm:block">
+              <Menu size={18} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* 🌟 হিরো সেকশন 🌟 */}
+      <div className="w-full max-w-[800px] mx-auto text-center px-4 pt-10 pb-4">
+        <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">
+          <span className="text-[#1D9F53]">সিলেট</span> ভ্রমণ ম্যাপ
+        </h1>
+        
+        <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 mb-4">
+          <div className="w-2.5 h-2.5 bg-[#1D9F53] rounded-full animate-pulse"></div>
+          <span className="text-xs font-semibold text-gray-600">
+            এ পর্যন্ত {downloadCount.toLocaleString("bn-BD")} টি ম্যাপ ডাউনলোড হয়েছে
+          </span>
+        </div>
+
+        <p className="text-sm md:text-base text-gray-600 max-w-xl mx-auto leading-relaxed">
+          যেসব জেলায়/স্পটে ঘুরেছেন বেছে নিন, পছন্দের থিম দিন, আর ডাউনলোড করুন নিজের ভ্রমণ ম্যাপ। একদম ফ্রি।
+        </p>
+      </div>
+
+      <div className="w-full max-w-[1300px] mx-auto p-4 flex flex-col lg:flex-row gap-6 mb-12">
         <aside className="w-full lg:w-[380px] shrink-0">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[750px]">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-gray-800">যেসব জেলায় ঘুরেছি</h2>
+              <h2 className="font-bold text-gray-800">যেসব জেলায়/স্পটে ঘুরেছেন বেছে নিন</h2>
               <span
                 className="text-xs font-bold px-2 py-1 rounded-md"
                 style={{
@@ -388,19 +570,19 @@ export default function TravelMap() {
               className="relative bg-[#F8F6F0] w-full max-w-[700px] aspect-[4/5] rounded-2xl shadow-2xl overflow-hidden border-[10px] border-white flex flex-col"
             >
               
-              {/* টপ সেকশন (মোবাইলে যাতে ওভারল্যাপ না হয় সেজন্য সাইজ ছোট করা হয়েছে) */}
+              {/* টপ সেকশন */}
               <div className="flex justify-between items-start z-10 w-full p-4 md:p-8 pb-0 shrink-0">
                 
                 <div className="flex items-start gap-2 md:gap-4">
                   {userImage && (
-                    <div className="bg-white p-1.5 md:p-2 rounded-lg shadow-sm -rotate-2 border border-gray-200 w-fit z-20 shrink-0">
+                    <div className="bg-white p-1.5 md:p-2 rounded-lg shadow-sm -rotate-2 border border-gray-200 w-[64px] md:w-[96px] z-20 shrink-0 flex flex-col items-center">
                       <img
                         src={userImage}
                         alt="আপনার ছবি"
                         className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md"
                       />
                       {userName && (
-                        <p className="text-center text-[8px] md:text-[10px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded uppercase truncate max-w-[48px] md:max-w-[80px]">
+                        <p className="text-center text-[7px] md:text-[9px] font-bold mt-1 text-gray-800 bg-gray-100 py-0.5 px-1 rounded w-full break-words leading-tight uppercase">
                           {userName}
                         </p>
                       )}
