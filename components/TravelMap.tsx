@@ -6,7 +6,8 @@ import { Upload, Download, Search, Share2, Globe, User, Menu, MapPin, X, Mail, G
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
-import { geoCentroid } from "d3-geo";
+import { geoCentroid, geoMercator, geoPath } from "d3-geo";
+import { Delaunay } from "d3-delaunay";
 
 const geoUrls = [
   "/BD_Districts.json", 
@@ -42,9 +43,66 @@ export default function TravelMap() {
 
   const mapRef = useRef<HTMLDivElement>(null);
 
+  // 🌟 সিলেক্ট করা স্পটের সংখ্যা অনুযায়ী ফন্ট সাইজ (সর্বনিম্ন ৫ পিক্সেল) 🌟
+  const totalSelected = visitedSpots.length;
+  let fontSize = 7;
+  if (totalSelected > 40) fontSize = 5;
+  else if (totalSelected > 25) fontSize = 5.5;
+  else if (totalSelected > 10) fontSize = 6;
+  else fontSize = 7.5;
+
+  // 🌟 ভোরোনোই সেল এবং সেন্টার পয়েন্ট বের করা 🌟
+  const voronoiData = useMemo(() => {
+    const projection = geoMercator()
+      .scale(35000)
+      .center([91.6, 24.6])
+      .translate([400, 500]);
+
+    const points = spotsData.map((spot) => projection(spot.coordinates as [number, number]));
+    
+    const delaunay = Delaunay.from(points);
+    const voronoi = delaunay.voronoi([0, 0, 800, 1000]);
+
+    return spotsData.map((spot, index) => {
+      const polygon = voronoi.cellPolygon(index);
+      let cx = points[index][0];
+      let cy = points[index][1];
+      
+      if (polygon) {
+        let sumX = 0, sumY = 0;
+        for (let i = 0; i < polygon.length - 1; i++) {
+          sumX += polygon[i][0];
+          sumY += polygon[i][1];
+        }
+        cx = sumX / (polygon.length - 1);
+        cy = sumY / (polygon.length - 1);
+      }
+
+      return {
+        id: spot.id,
+        name: spot.name,
+        path: voronoi.renderCell(index),
+        center: [cx, cy]
+      };
+    });
+  }, []);
+
+  const clipPathD = useMemo(() => {
+    if (!mapData) return "";
+    const projection = geoMercator().scale(35000).center([91.6, 24.6]).translate([400, 500]);
+    const path = geoPath().projection(projection);
+
+    return mapData.features
+      .filter((geo: any) => {
+        const name = (geo.properties?.NAME_2 || geo.properties?.name || geo.properties?.ADM2_EN || "").toLowerCase();
+        return ["sylhet", "sunamganj", "moulvibazar", "maulvibazar", "habiganj"].includes(name);
+      })
+      .map((feature: any) => path(feature))
+      .join(" ");
+  }, [mapData]);
+
   useEffect(() => {
     setIsClient(true);
-
     const savedUser = localStorage.getItem("sylhet_map_user");
     if (savedUser) {
       setIsLoggedIn(true);
@@ -226,12 +284,35 @@ export default function TravelMap() {
         pdf.addImage(dataUrl, "PNG", (pageWidth - width) / 2, 5, width, height);
         pdf.save("সিলেট-ভ্রমণ-ম্যাপ.pdf");
       } else {
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `সিলেট-ভ্রমণ-ম্যাপ.${format}`, { type: blob.type });
+
+        // 🌟 মোবাইল এবং ডেস্কটপ ডিটেকশন 🌟
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+          // মোবাইলে (বিশেষ করে ফেসবুক) শেয়ার মেনু ওপেন হবে
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'আমার সিলেট ভ্রমণ ম্যাপ',
+              text: 'আমার তৈরি করা সিলেট ভ্রমণ ম্যাপটি দেখুন!',
+            });
+          } catch (error) {
+            console.log('Share failed:', error);
+          }
+        } else {
+          // কম্পিউটারে সরাসরি ডাউনলোড হবে
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
       }
 
       setDownloadCount((prevCount) => {
@@ -333,11 +414,11 @@ export default function TravelMap() {
                       <h3 className="font-bold text-[15px] text-gray-800 flex items-center gap-2">{district.bn} জেলা <span className="text-xs text-gray-400 font-normal">{selectedCount}/{districtSpots.length}</span></h3>
                       <button onClick={() => toggleDistrict(districtSpots)} className="text-xs text-gray-500 hover:text-gray-800">{isAllSelected ? "মুছুন" : "সব বাছাই"}</button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {districtSpots.map((spot) => {
                         const isSelected = visitedSpots.includes(spot.id);
                         return (
-                          <button key={spot.id} onClick={() => toggleVisited(spot.id)} className={`text-xs px-3 py-1.5 rounded-full font-medium transition border ${isSelected ? "text-white border-transparent shadow-sm" : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`} style={{ backgroundColor: isSelected ? activeTheme.color : undefined }}>{spot.name}</button>
+                          <button key={spot.id} onClick={() => toggleVisited(spot.id)} className={`text-xs px-2 py-2 rounded-full font-medium transition border truncate ${isSelected ? "text-white border-transparent shadow-sm" : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"}`} style={{ backgroundColor: isSelected ? activeTheme.color : undefined }} title={spot.name}>{spot.name}</button>
                         );
                       })}
                     </div>
@@ -368,7 +449,6 @@ export default function TravelMap() {
                 </label>
                 <span className="text-sm font-medium text-gray-600">আপনার ছবি যোগ করুন</span>
               </div>
-              {/* 🌟 এখানে নাম লেখার ইনপুট ফিল্ডটি ঠিক করা হয়েছে 🌟 */}
               <input 
                 type="text" 
                 placeholder="আপনার নাম (ঐচ্ছিক)" 
@@ -409,6 +489,14 @@ export default function TravelMap() {
                   </div>
                 ) : (
                   <ComposableMap projection="geoMercator" projectionConfig={{ scale: 35000, center: [91.6, 24.6] }} width={800} height={1000} style={{ width: "100%", height: "100%" }}>
+                    
+                    <defs>
+                      <clipPath id="map-clip">
+                        <path d={clipPathD} />
+                      </clipPath>
+                    </defs>
+
+                    {/* বেস ম্যাপ */}
                     <Geographies geography={mapData}>
                       {({ geographies }) =>
                         geographies.filter((geo) => {
@@ -420,29 +508,87 @@ export default function TravelMap() {
                             const [x, y] = geoCentroid(geo);
                             return (
                               <React.Fragment key={geo.rsmKey}>
-                                <Geography geography={geo} fill="#E5E0D5" stroke="#FFFFFF" strokeWidth={2} style={{ default: { outline: "none", transition: "fill 300ms" }, hover: { fill: "#d6d0c4", outline: "none" }, pressed: { outline: "none" } } as any} />
+                                <Geography geography={geo} fill="#E5E0D5" stroke="#FFFFFF" strokeWidth={2} style={{ default: { outline: "none" }, hover: { fill: "#d6d0c4", outline: "none" }, pressed: { outline: "none" } } as any} />
                                 <Marker coordinates={[x, y]}><text textAnchor="middle" y={0} style={{ fontFamily: "inherit", fill: "#173D2B", fontSize: "16px", fontWeight: "900", paintOrder: "stroke" }} stroke="#FFFFFF" strokeWidth={3} className="pointer-events-none drop-shadow-sm">{districtBn}</text></Marker>
                               </React.Fragment>
                             );
                           })
                       }
                     </Geographies>
-                    {spotsData.map((spot) => {
-                      const isSelected = visitedSpots.includes(spot.id);
-                      return (
-                        <Marker key={spot.id} coordinates={spot.coordinates as [number, number]}>
-                          <g className="cursor-pointer group" onClick={() => toggleVisited(spot.id)}>
-                            <circle r={isSelected ? 4.5 : 2.5} fill={isSelected ? activeTheme.color : "#D32F2F"} stroke="#FFFFFF" strokeWidth={1.5} className="transition-all duration-200 group-hover:r-5" />
-                            {isSelected && (
-                              <g transform="translate(0, -12)">
-                                <rect x={-(spot.name.length * 3.5 + 6)} y={-8} width={spot.name.length * 7 + 12} height={14} rx={7} fill={activeTheme.color} className="drop-shadow-md opacity-95" />
-                                <text textAnchor="middle" y={2} fontSize={7.5} fontWeight="bold" fill="#FFFFFF" className="pointer-events-none">{spot.name}</text>
+
+                    {/* 🌟 ভোরোনোই সেল এবং টেক্সট (স্পষ্ট পড়ার জন্য) 🌟 */}
+                    <g clipPath="url(#map-clip)">
+                      {voronoiData.map((item) => {
+                        const isSelected = visitedSpots.includes(item.id);
+                        
+                        // টেক্সট ভাঙার লজিক
+                        const words = item.name.split(' ');
+                        const lines: string[] = [];
+                        let currentLine = '';
+                        words.forEach(word => {
+                          if ((currentLine + word).length > 7) {
+                            if (currentLine) lines.push(currentLine.trim());
+                            currentLine = word + ' ';
+                          } else {
+                            currentLine += word + ' ';
+                          }
+                        });
+                        if (currentLine) lines.push(currentLine.trim());
+
+                        const lineHeight = fontSize + 2;
+                        const startY = -((lines.length - 1) * lineHeight) / 2;
+
+                        return (
+                          <g key={item.id} onClick={() => toggleVisited(item.id)} className="cursor-pointer group">
+                            <path
+                              d={item.path}
+                              fill={isSelected ? activeTheme.color : "transparent"}
+                              stroke={isSelected ? "#FFFFFF" : "#D1D5DB"} 
+                              strokeWidth={isSelected ? 1.5 : 1}
+                              strokeLinejoin="round"
+                              className="transition-all duration-300"
+                            />
+                            
+                            {isSelected ? (
+                              <g transform={`translate(${item.center[0]}, ${item.center[1]})`}>
+                                {/* 🌟 লাল ডট (সবসময় থাকবে) 🌟 */}
+                                <circle 
+                                  cx={0} 
+                                  cy={0} 
+                                  r={2} 
+                                  fill="#D32F2F" 
+                                  stroke="#FFFFFF" 
+                                  strokeWidth={1} 
+                                  className="drop-shadow-sm"
+                                />
+                                
+                                {/* 🌟 নাম (সাদা রঙ, কোনো আউটলাইন নেই, শুধু শ্যাডো) 🌟 */}
+                                <text
+                                  textAnchor="middle"
+                                  y={-5}
+                                  style={{
+                                    fontFamily: "inherit",
+                                    fill: "#FFFFFF",
+                                    fontSize: `${fontSize}px`,
+                                    fontWeight: "900",
+                                    textShadow: "0px 2px 4px rgba(0,0,0,0.8)", // 🌟 লেখা স্পষ্ট করার জন্য কালো শ্যাডো 🌟
+                                  }}
+                                  className="pointer-events-none"
+                                >
+                                  {lines.map((line, i) => (
+                                    <tspan key={i} x={0} dy={i === 0 ? -lineHeight * (lines.length - 1) : lineHeight}>
+                                      {line}
+                                    </tspan>
+                                  ))}
+                                </text>
                               </g>
+                            ) : (
+                              <circle cx={item.center[0]} cy={item.center[1]} r={2.5} fill="#D32F2F" stroke="#FFFFFF" strokeWidth={1} className="transition-all duration-200 hover:r-4" />
                             )}
                           </g>
-                        </Marker>
-                      );
-                    })}
+                        );
+                      })}
+                    </g>
                   </ComposableMap>
                 )}
               </div>
@@ -513,11 +659,6 @@ export default function TravelMap() {
                 </a>
               </li>
               <li>
-                <a href="https://about-shakil.vercel.app/" target="_blank" rel="noreferrer" className="text-sm text-gray-600 hover:text-[#1D9F53] flex items-center gap-2 transition">
-                  <Globe size={16} className="text-gray-400" /> about-shakil.vercel.app
-                </a>
-              </li>
-              <li>
                 <a href="https://facebook.com" target="_blank" rel="noreferrer" className="text-sm text-gray-600 hover:text-[#1D9F53] flex items-center gap-2 transition">
                   <LinkIcon size={16} className="text-gray-400" /> Facebook Profile
                 </a>
@@ -536,7 +677,7 @@ export default function TravelMap() {
 
         <div className="max-w-[1300px] mx-auto px-4 mt-8 pt-6 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Sylhet Travel Map. All rights reserved. Made with ❤️ by <a href="https://about-shakil.vercel.app/" target="_blank" rel="noreferrer" className="text-[#1D9F53] font-bold hover:underline">Shakil Ahamed</a>.
+            © {new Date().getFullYear()} Sylhet Travel Map. All rights reserved. Made with ❤️ by Shakil Ahamed.
           </p>
         </div>
       </footer>
