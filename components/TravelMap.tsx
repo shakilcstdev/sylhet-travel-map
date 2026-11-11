@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-// 🌟 Facebook ইমপোর্ট থেকে সরিয়ে দেওয়া হয়েছে 🌟
 import { Upload, Download, Search, Share2, Globe, User, Menu, MapPin, X, Mail, GraduationCap, MapPinned, Link as LinkIcon } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
@@ -263,9 +262,9 @@ export default function TravelMap() {
             </button>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">সাইন ইন করুন</h2>
             <form onSubmit={handleLogin} className="space-y-4 mt-4">
-              <input type="text" value={authName} onChange={(e) => setAuthName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" placeholder="আপনার নাম" />
-              <input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" placeholder="ইমেইল" />
-              <input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53]" placeholder="পাসওয়ার্ড" />
+              <input type="text" value={authName} onChange={(e) => setAuthName(e.target.value)} className="w-full border border-gray-300 bg-white text-gray-900 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53] placeholder-gray-500" placeholder="আপনার নাম" />
+              <input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full border border-gray-300 bg-white text-gray-900 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53] placeholder-gray-500" placeholder="ইমেইল" />
+              <input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full border border-gray-300 bg-white text-gray-900 rounded-lg p-3 text-sm outline-none focus:border-[#1D9F53] placeholder-gray-500" placeholder="পাসওয়ার্ড" />
               <button type="submit" className="w-full bg-[#1D9F53] text-white py-3 rounded-lg font-bold text-sm hover:bg-green-700 transition">লগইন করুন</button>
             </form>
           </div>
@@ -316,7 +315,7 @@ export default function TravelMap() {
             </div>
             <div className="relative mb-4">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-              <input type="text" placeholder="জেলা বা স্পট খুঁজুন..." className="w-full bg-gray-50 border border-gray-200 pl-10 p-2.5 rounded-xl text-sm outline-none focus:border-gray-400" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+              <input type="text" placeholder="জেলা বা স্পট খুঁজুন..." className="w-full bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 pl-10 p-2.5 rounded-xl text-sm outline-none focus:border-gray-400" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             </div>
             <div className="flex gap-4 mb-5 text-sm font-medium text-gray-500 px-1 border-b pb-4">
               <button onClick={selectAll} className="hover:text-gray-800">সব বাছাই করুন</button>
@@ -369,7 +368,14 @@ export default function TravelMap() {
                 </label>
                 <span className="text-sm font-medium text-gray-600">আপনার ছবি যোগ করুন</span>
               </div>
-              <input type="text" placeholder="আপনার নাম (ঐচ্ছিক)" className="border border-gray-200 px-3 py-2 rounded-lg text-sm outline-none focus:border-gray-400 flex-1 min-w-[150px]" value={userName} onChange={(event) => setUserName(event.target.value)} />
+              {/* 🌟 এখানে নাম লেখার ইনপুট ফিল্ডটি ঠিক করা হয়েছে 🌟 */}
+              <input 
+                type="text" 
+                placeholder="আপনার নাম (ঐচ্ছিক)" 
+                className="border border-gray-300 bg-white text-gray-900 placeholder-gray-500 px-3 py-2 rounded-lg text-sm outline-none focus:border-[#1D9F53] flex-1 min-w-[150px]" 
+                value={userName} 
+                onChange={(event) => setUserName(event.target.value)} 
+              />
             </div>
           </div>
 
