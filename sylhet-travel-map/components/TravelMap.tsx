@@ -2,14 +2,15 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { spotsData, sylhetDistricts } from "@/data/spots";
-import { Upload, Download, Search, Share2, Globe, User, Menu, MapPin, X, Mail, GraduationCap, MapPinned, Link as LinkIcon, Facebook } from "lucide-react";
+// 🌟 Facebook ইমপোর্ট থেকে সরিয়ে দেওয়া হয়েছে 🌟
+import { Upload, Download, Search, Share2, Globe, User, Menu, MapPin, X, Mail, GraduationCap, MapPinned, Link as LinkIcon } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 
 const geoUrls = [
-  "/bangladesh.geojson",
+  "/BD_Districts.json", 
   "https://raw.githubusercontent.com/fahim-muntasir-niloy/Bangladesh-geojson_project/main/Geo%20Json%20Maps/BD_Districts.json"
 ];
 
@@ -33,7 +34,6 @@ export default function TravelMap() {
   const [mapError, setMapError] = useState(false);
   const [downloadCount, setDownloadCount] = useState(0);
 
-  // 🌟 Auth States 🌟
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -62,7 +62,7 @@ export default function TravelMap() {
     const loadMapData = async () => {
       for (const url of geoUrls) {
         try {
-          const response = await fetch(url);
+          const response = await fetch(url, { cache: "no-store" }); 
           if (!response.ok) continue;
           const data = await response.json();
           if (data && data.type === "FeatureCollection" && Array.isArray(data.features)) {
@@ -159,7 +159,6 @@ export default function TravelMap() {
     }
   };
 
-  // 🌟 মোবাইল ফিক্স: ক্লোন করে কম্পিউটারের লেআউটে ফোর্স করে ডাউনলোড 🌟
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
     const originalNode = mapRef.current;
@@ -256,7 +255,6 @@ export default function TravelMap() {
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F6F4] relative">
       
-      {/* Auth Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md relative shadow-2xl">
@@ -274,11 +272,12 @@ export default function TravelMap() {
         </div>
       )}
 
-      {/* Navbar */}
       <nav className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1300px] mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="bg-[#1D9F53] p-1.5 rounded-lg flex items-center justify-center"><MapPin className="text-white" size={20} /></div>
+            <div className="bg-[#1D9F53] p-1.5 rounded-lg flex items-center justify-center">
+              <MapPin className="text-white" size={20} />
+            </div>
             <div className="leading-tight">
               <h1 className="font-bold text-md text-gray-900">আমার</h1>
               <h1 className="font-bold text-md text-gray-900">সিলেট</h1>
@@ -299,7 +298,6 @@ export default function TravelMap() {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <div className="w-full max-w-[800px] mx-auto text-center px-4 pt-10 pb-4">
         <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3"><span className="text-[#1D9F53]">সিলেট</span> ভ্রমণ ম্যাপ</h1>
         <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 mb-4">
@@ -310,7 +308,6 @@ export default function TravelMap() {
       </div>
 
       <div className="w-full max-w-[1300px] mx-auto p-4 flex flex-col lg:flex-row gap-6 mb-12">
-        {/* Sidebar */}
         <aside className="w-full lg:w-[380px] shrink-0">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[750px]">
             <div className="flex justify-between items-center mb-4">
@@ -376,11 +373,9 @@ export default function TravelMap() {
             </div>
           </div>
 
-          {/* Poster Area */}
           <div className="flex justify-center w-full">
             <div ref={mapRef} className="relative bg-[#F8F6F0] w-full max-w-[700px] aspect-[4/5] rounded-2xl shadow-2xl overflow-hidden border-[10px] border-white flex flex-col">
               
-              {/* Top Section */}
               <div className="flex justify-between items-start z-10 w-full p-4 md:p-8 pb-0 shrink-0">
                 <div className="flex items-start gap-2 md:gap-4">
                   {userImage && (
@@ -400,9 +395,13 @@ export default function TravelMap() {
                 </div>
               </div>
 
-              {/* Map Section */}
               <div className="flex-1 min-h-0 w-full relative flex items-center justify-center p-2 md:p-4">
-                {mapError ? <div className="text-red-500 font-bold text-center">ম্যাপ ফাইল লোড করা যায়নি।</div> : !mapData ? <div className="text-gray-500 font-bold animate-pulse">ম্যাপ ডেটা লোড হচ্ছে...</div> : (
+                {mapError ? <div className="text-red-500 font-bold text-center">ম্যাপ ফাইল লোড করা যায়নি।</div> : !mapData ? (
+                  <div className="flex flex-col items-center justify-center animate-pulse">
+                    <div className="w-10 h-10 border-4 border-gray-300 border-t-[#1D9F53] rounded-full animate-spin mb-3"></div>
+                    <div className="text-gray-500 font-bold text-sm">ম্যাপ ডেটা লোড হচ্ছে...</div>
+                  </div>
+                ) : (
                   <ComposableMap projection="geoMercator" projectionConfig={{ scale: 35000, center: [91.6, 24.6] }} width={800} height={1000} style={{ width: "100%", height: "100%" }}>
                     <Geographies geography={mapData}>
                       {({ geographies }) =>
@@ -442,7 +441,6 @@ export default function TravelMap() {
                 )}
               </div>
 
-              {/* Poster Bottom Section (Clean, no personal details) */}
               <div className="w-full z-10 bg-[#F8F6F0] p-4 md:p-8 pt-3 md:pt-4 border-t border-gray-200 mt-auto shrink-0">
                 <div className="flex justify-between items-center mb-1.5 md:mb-2 text-[10px] md:text-sm font-bold" style={{ color: activeTheme.color }}>
                   <span>{progress}% সিলেট ঘোরা হয়েছে</span>
@@ -469,7 +467,6 @@ export default function TravelMap() {
             </div>
           </div>
 
-          {/* Download Buttons */}
           <div className="flex flex-col items-center gap-2 mt-2 w-full max-w-[400px] mx-auto px-4">
             <button onClick={() => downloadMap("png")} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm md:text-base font-bold transition shadow-md text-white hover:opacity-90" style={{ backgroundColor: activeTheme.color }}>
               <Download size={18} /> আপনার ম্যাপ ডাউনলোড করুন
@@ -483,11 +480,8 @@ export default function TravelMap() {
         </main>
       </div>
 
-      {/* 🌟 Website Footer (Here is the Personal Details) 🌟 */}
       <footer className="w-full bg-white border-t border-gray-200 mt-auto py-10">
         <div className="max-w-[1300px] mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Col 1: Profile Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img src="/profile.png" alt="Md. Shakil Ahamed" className="w-12 h-12 rounded-full object-cover border-2 border-[#1D9F53]" />
@@ -504,7 +498,6 @@ export default function TravelMap() {
             </p>
           </div>
 
-          {/* Col 2: Contact Info */}
           <div>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">যোগাযোগ (Contact)</h3>
             <ul className="space-y-3">
@@ -526,7 +519,6 @@ export default function TravelMap() {
             </ul>
           </div>
 
-          {/* Col 3: Other Details */}
           <div>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">অন্যান্য (Details)</h3>
             <ul className="space-y-2 text-sm text-gray-600">
