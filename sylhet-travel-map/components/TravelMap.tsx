@@ -158,6 +158,7 @@ export default function TravelMap() {
     }
   };
 
+  // 🌟 ম্যাজিক ট্রিক: Web Share API ব্যবহার করে ফেসবুকের ডাউনলোড ব্লক বাইপাস 🌟
   const downloadMap = async (format: "png" | "jpg" | "pdf") => {
     if (!mapRef.current) return;
     const originalNode = mapRef.current;
@@ -226,12 +227,36 @@ export default function TravelMap() {
         pdf.addImage(dataUrl, "PNG", (pageWidth - width) / 2, 5, width, height);
         pdf.save("সিলেট-ভ্রমণ-ম্যাপ.pdf");
       } else {
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // 🌟 ব্লব তৈরি করা হচ্ছে 🌟
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        
+        // 🌟 ফাইল তৈরি করা হচ্ছে 🌟
+        const file = new File([blob], `সিলেট-ভ্রমণ-ম্যাপ.${format}`, { type: blob.type });
+
+        // 🌟 Web Share API সাপোর্ট করে কি না চেক করা হচ্ছে (ফেসবুক/মোবাইলে এটি ১০০% কাজ করে) 🌟
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'আমার সিলেট ভ্রমণ ম্যাপ',
+              text: 'আমার তৈরি করা সিলেট ভ্রমণ ম্যাপটি দেখুন!',
+            });
+          } catch (error) {
+            console.log('Share failed:', error);
+            // ইউজার ক্যানসেল করলে কিছুই করবে না
+          }
+        } else {
+          // 🌟 সাধারণ ব্রাউজারে সরাসরি ডাউনলোড হবে 🌟
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `সিলেট-ভ্রমণ-ম্যাপ.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
       }
 
       setDownloadCount((prevCount) => {
@@ -368,7 +393,6 @@ export default function TravelMap() {
                 </label>
                 <span className="text-sm font-medium text-gray-600">আপনার ছবি যোগ করুন</span>
               </div>
-              {/* 🌟 এখানে নাম লেখার ইনপুট ফিল্ডটি ঠিক করা হয়েছে 🌟 */}
               <input 
                 type="text" 
                 placeholder="আপনার নাম (ঐচ্ছিক)" 
@@ -513,11 +537,6 @@ export default function TravelMap() {
                 </a>
               </li>
               <li>
-                <a href="https://about-shakil.vercel.app/" target="_blank" rel="noreferrer" className="text-sm text-gray-600 hover:text-[#1D9F53] flex items-center gap-2 transition">
-                  <Globe size={16} className="text-gray-400" /> about-shakil.vercel.app
-                </a>
-              </li>
-              <li>
                 <a href="https://facebook.com" target="_blank" rel="noreferrer" className="text-sm text-gray-600 hover:text-[#1D9F53] flex items-center gap-2 transition">
                   <LinkIcon size={16} className="text-gray-400" /> Facebook Profile
                 </a>
@@ -536,7 +555,7 @@ export default function TravelMap() {
 
         <div className="max-w-[1300px] mx-auto px-4 mt-8 pt-6 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Sylhet Travel Map. All rights reserved. Made with ❤️ by <a href="https://about-shakil.vercel.app/" target="_blank" rel="noreferrer" className="text-[#1D9F53] font-bold hover:underline">Shakil Ahamed</a>.
+            © {new Date().getFullYear()} Sylhet Travel Map. All rights reserved. Made with ❤️ by Shakil Ahamed.
           </p>
         </div>
       </footer>
